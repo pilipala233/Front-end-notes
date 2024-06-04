@@ -4,12 +4,12 @@
 - 浏览器架构
     - 公式 1： 浏览器 = 浏览器内核 + 服务（Chrome = Chromium + Google 服务集成）
     - 公式 2：内核 = 渲染引擎 + JavaScript 引擎 + 其他（Chrome：WebKit → Blink	V8）
-- Chromium 进程模型（5 类进程）
-
+- Chromium 进程模型（5 类进程，一般来说，当 Chrome 在强大的硬件上运行时，可能会将每项服务拆分为不同的进程，以提高稳定性；但如果是在资源有限的设备上，Chrome 会将各项服务合并为一个进程，从而节省内存占用量）
+    <img alt="Chrome 服务化"  src="https://developer.chrome.com/static/blog/inside-browser-part1/image/chrome-servification-f06f547c54405.svg?hl=zh-cn" >
     - Browser Process：1 个
         - Render & Compositing Thread
         - Render & Compositing Thread Helpers
-    - Utility Process：1 个
+    - Utility Process（==还不知道是拿来干嘛的，但是确实是这样分==）：1 个
     - Viz Process：1 个
         - GPU main thread
         - Display Compositor Thread
@@ -26,13 +26,14 @@
     - Single Process：单进程模式，启动参数可控，用于 Debug。
 
 渲染流水线：
+
+0.  帧开始（Frame Start）-> Input event handlers（合成线程将输入事件传递给主线程）-> requestAnimiationFrame执行
 1. Parsing(bytes → characters → token → nodes → object model (DOM Tree))
     - Loading：Blink 从网络线程接收 bytes
     - Conversion: HTMLParser 将 bytes 转为 characters
     - Tokenizing: 将 characters 转为 W3C 标准的 token(需要注意的是，这一步中如果解析到 link、script、img 标签时会继续发起网络请求；同时解析到 script 时，需要先执行完解析到的 JavaScript，才会继续往后解析 HTML。因为 JavaScript 可能会改变 DOM 树的结构(如 document.write() 等)，所以需要先等待它执行完)
     - Lexing: 通过词法分析将 token 转为 Element 对象
     - DOM construction: 使用构建好的 Element 对象构建 DOM Tree
-    ==todo:初次加载时的Input event handlers（合成线程将输入事件传递给主线程）和requestAnimiationFrame是在哪个时机执行呢，阅读其他文章我只能确定是在Parse HTML之前==
 2. Style（DOM Tree 输出 Render Tree）
 3. Layout（Render Tree 输出 Layout Tree）
 4. Pre-paint（生成 Property trees，供 Compositor thread 使用，避免某些资源重复 Raster，这里和网易文章中的Render Layer==似乎==是同一个东西）
@@ -44,8 +45,8 @@
 9. Raster（位图填充，转化为像素值。这些图块的大小通常是 256256 或者 512512。光栅化可以分为软件光栅化（Software Rasterization）和硬件光栅化（Hardware Rasterization）， 区别在于位图的生成是在 CPU 中进行，之后再上传至 GPU 合成，还是直接在 GPU 中进行绘图和图像素填充）
 10. Activate（实现一个缓冲机制，确保 Draw 阶段操作前 Raster 的数据已准备好。具体而言将 Layer Tree 分成 Pending Tree 与 Active Tree，从 Pending Tree 拷贝 Layer 到 Activate Tree 的过程就是 Activate。）
 11. Draw（合成线程会收集被称为 draw quads 的图块信息用于创建合成帧（compositor frame）。合成帧被发送给 GPU 进程，这一帧结束）
-12. Aggregate（==图像显示，暂时看不懂，没细看，会有一天看懂的==）
-13. Display（==图像显示，暂时看不懂，没细看，会有一天看懂的==）
+12. Aggregate（==图像显示，暂时看不懂，没细看==）
+13. Display（==图像显示，暂时看不懂，没细看==）
 
 
 下面的是网易文章的简洁总结：
@@ -66,13 +67,14 @@
 
 
 具体流程参考下面
-<img src="https://github.com/pilipala233/IMG/blob/main/note/Chromium%20%E6%B8%B2%E6%9F%93%E6%B5%81%E6%B0%B4%E7%BA%BF.png?raw=true">
+<img src="./pic/渲染流程.png">
 
 参考：
 
 *   [浏览器渲染详细过程：重绘、重排和 composite 只是冰山一角](https://juejin.cn/post/6844903476506394638)
 *   [从浏览器渲染原理谈动画性能优化](https://juejin.cn/post/7054055447052943396/#heading-14)
 * [Chromium 渲染流水线——字节码到像素的一生](https://blog.ursb.me/posts/chromium-renderer/)
+* [深入了解现代网络浏览器](https://developer.chrome.com/blog/inside-browser-part1?hl=zh-cn)
 
 # js中的==
 1. 如果操作数具有相同的类型，则按如下方式进行比较：
@@ -101,3 +103,260 @@
 
 *   [相等（==）- MDN](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Operators/Equality)
 *   [JS 基础知识点及常考面试题（二）](https://zhuanlan.zhihu.com/p/508403469)
+
+# eventloop
+* 前置
+    * Event Loop 在浏览器内也分几种：
+        * window event loop
+        * worker event loop
+        * worklet event loop
+    * 这是一种运行机制（有的教程还说是一种线程，那个是错误的...）
+    * 主线程运行的时候，产生堆（heap）和栈（stack）还有"任务队列"（task queue）(任务队列不在主线程外，是运行时产生的，MDN有描述;数据结构上是一个集合，而不是队列；一个 Event Loop 有一个或多个 task queues)
+    * 栈中的代码执行完毕，主线程就会去读取"任务队列"
+* 顺序（浏览器）
+<img src="./pic/eventloop.png"></img>
+1. 执行全局Script同步代码，这些同步代码有一些是同步语句，有一些是异步语句（比如setTimeout等）；
+2. 全局Script代码执行完毕后，调用栈Stack会清空；
+3. 从微队列microtask queue中取出位于队首的回调任务，放入调用栈Stack中执行，执行完后microtask queue长度减1；
+4. 继续取出位于队首的任务，放入调用栈Stack中执行，以此类推，直到直到把microtask queue中的所有任务都执行完毕。注意，如果在执行microtask的过程中，又产生了microtask，那么会加入到队列的末尾，也会在这个周期被调用执行；
+5. microtask queue中的所有任务都执行完毕，此时microtask queue为空队列，调用栈Stack也为空；
+6. 取出宏队列macrotask queue中位于队首的任务，放入Stack中执行；
+7. 执行完毕后，调用栈Stack为空；
+8. 重复第3-7个步骤；
+9. 重复第3-7个步骤；
+10. ......
+
+注意：
+- 宏队列macrotask一次只从队列中取一个任务执行，执行完后就去执行微任务队列中的任务；
+- 微任务队列中所有的任务都会被依次取出来执行，知道microtask queue为空；
+- 图中没有画UI rendering的节点，因为这个是由浏览器自行判断决定的(==这很重要，但是具体机制暂不清楚==)，但是只要执行UI rendering，它的节点是在执行完所有的microtask之后，下一个macrotask之前，紧跟着执行UI render
+
+* Node环境
+    ==占坑==
+
+
+
+* 宏任务（macrotask，也叫task）
+    - script
+    - setTimeout
+    - setInterval
+    - setImmediate
+    - I/O
+    - UI rendering
+* 微任务（microtask，也叫jobs）
+    - MutationObserver
+    - Promise.then()/catch()
+    - 以 Promise 为基础开发的其他技术，例如 fetch API
+    - V8 的垃圾回收过程
+    - Node 独有的 process.nextTick
+    - Object.observe
+
+
+
+
+参考：
+
+*   [带你彻底弄懂Event Loop](https://segmentfault.com/a/1190000016278115#item-2-1)
+*   [JS 基础知识点及常考面试题（二）](https://zhuanlan.zhihu.com/p/508403469)
+
+
+# requestAnimationFrame
+
+1. ==疑惑==:60hz频率下不是应该等待硬件提供的16ms一次的机会来刷新吗？下面截图第二个输出是标准的
+<img src="./pic/requestAnimationFrame 执行截图.png">
+
+```javascript
+function test() {
+    var s = performance.now();
+    requestAnimationFrame(() => {
+        console.log(performance.now() - s, 'requestAnimationFrame do');
+        requestAnimationFrame(() => {
+            console.log(performance.now() - s, 'requestAnimationFrame2 do');
+            requestAnimationFrame(() => {
+                console.log(performance.now() - s, 'requestAnimationFrame3 do');
+            });
+        });
+    });
+}
+
+test();
+
+```
+2. RAF是宏任务还是微任务还是有争议的，我认为应该单独拿出来算（就像上面的渲染管线流程图一样），对于运行时机需要考虑浏览器以及具体代码，不能简单约等于微任务
+3. 浏览器新旧版本执行差异很大，很多文章的代码执行顺序已经发生变化了
+
+==现在这段代码所有最新版浏览器都是从右往左移动了，是不是间接说明了现在主流浏览器执行 requestAnimationFrame 回调的时机是在 1 帧渲染之后，所以当前帧调用的 requestAnimationFrame 会在下一帧呈现==
+```js
+test.style.transform = 'translate(0, 0)';
+document.querySelector('button').addEventListener('click', () => {
+  const test = document.querySelector('.test');
+  test.style.transform = 'translate(400px, 0)';
+
+  requestAnimationFrame(() => {
+    test.style.transition = 'transform 3s linear';
+    test.style.transform = 'translate(200px, 0)';
+  });
+});
+```
+这位提出者直到今天仍然还在重复反馈这个缺陷
+![issue](./pic/github问题.png)
+
+* 理论上，raf 是在微任务队列执行完之后，css计算之前或者说下一个宏任务前执行
+具体可以参考下面的截图，他是从规范中翻译过来的
+<img src='./pic/raf的执行流程.jpg'>
+这个也可以
+<img src="./pic/raf 理论执行时机.png"></img>
+ 但是我在阅读文章中有很多例子颠覆我的看法（chrome125）
+```js
+setTimeout(() => {
+  console.log("sto")
+  requestAnimationFrame(() => console.log("rAF"))
+})
+setTimeout(() => {
+  console.log("sto")
+  requestAnimationFrame(() => console.log("rAF"))
+})
+
+queueMicrotask(() => console.log("mic"))
+queueMicrotask(() => console.log("mic"))
+```
+作者认为这是[定时器合并（这文章的序号编排有问题，最好是去他微信公众号看）](https://zhuanlan.zhihu.com/p/142742003),我觉得和上文的解释有点出入，发现评论区有人指出
+
+<img src="./pic/RAF讨论评论区截图.png"></img>
+于是我改了一下案例，加入延迟参数1ms
+<img src="./pic/raf案例代码修改.png"></img>
+如果想要说明会合并定时器，应该用下面这个
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Timer Callback Example</title>
+</head>
+<body>
+
+<div id="output"></div>
+
+<script>
+  function logMessage(message) {
+    const outputDiv = document.getElementById('output');
+    const newMessage = document.createElement('p');
+    newMessage.textContent = message;
+    outputDiv.appendChild(newMessage);
+  }
+
+  // Simulate tasks that should be executed one after another
+  function task1() {
+    logMessage('Task 1 executed');
+  }
+
+  function task2() {
+    logMessage('Task 2 executed');
+  }
+
+  function task3() {
+    logMessage('Task 3 executed');
+  }
+
+  // Use setTimeout to schedule tasks
+  setTimeout(() => {
+    task1();
+    task2();
+    task3();
+  }, 0);
+
+  // Simulate an animation frame callback
+  requestAnimationFrame(() => {
+    logMessage('Animation frame callback executed');
+  });
+
+</script>
+
+</body>
+</html>
+
+```
+但又有个新的问题 ==“一个时间循环时间”浏览器怎么判断的呢==
+参考：
+
+
+
+==疑惑：下面多跑几次就发现执行结果顺序不一定，上面的则不会==
+
+```js
+setTimeout(() => {
+    console.log('setTimeout');
+}, 0);
+Promise.resolve()
+    .then(() => {
+        console.log(2);
+    })
+    .then(() => {
+        console.log(3);
+    });
+new Promise((resolve) => {
+    console.log(4);
+    resolve();
+})
+    .then(() => {
+        console.log(5);
+        return 6;
+    })
+    .then(Promise.resolve(7))
+    .then((res) => {
+        console.log(res);
+    });
+ setTimeout(() => {
+     console.log('setTimeout2');
+ });
+requestAnimationFrame(() => {
+    console.log('animation’');
+});
+```
+<img src="./pic/raf多次执行结果不一致.png">
+
+
+```js
+setTimeout(() => {
+    console.log('setTimeout');
+}, 0);
+Promise.resolve()
+    .then(() => {
+        console.log(2);
+    })
+    .then(() => {
+        console.log(3);
+    });
+new Promise((resolve) => {
+    console.log(4);
+    resolve();
+})
+    .then(() => {
+        console.log(5);
+        return 6;
+    })
+    .then(Promise.resolve(7))
+    .then((res) => {
+        console.log(res);
+    });
+requestAnimationFrame(() => {
+    console.log('animation’');
+});
+
+```
+
+
+
+<img src="./pic/raf多次执行结果不一致2.png"></img>
+
+
+
+
+* [为什么每次requestAnimationFrame的回调第一次都是立即执行？
+](https://www.zhihu.com/question/456804188)
+* [rAF在EventLoop的表现](https://www.cnblogs.com/zhangmingzhao/p/18028506)
+* [requestAnimationFrame 执行机制探索](https://zhuanlan.zhihu.com/p/432195854)
+* [深入解析 EventLoop 和浏览器渲染、帧动画、空闲回调的关系](https://zhuanlan.zhihu.com/p/142742003)
+* [requestAnimationFrame回调时机](https://zhuanlan.zhihu.com/p/64917985)
+* [html规范](https://html.spec.whatwg.org/multipage/webappapis.html#event-loop-processing-model)
