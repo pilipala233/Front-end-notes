@@ -3,7 +3,7 @@
 前置：
 - 浏览器架构
     - 公式 1： 浏览器 = 浏览器内核 + 服务（Chrome = Chromium + Google 服务集成）
-    - 公式 2：内核 = 渲染引擎 + JavaScript 引擎 + 其他（Chrome：WebKit → Blink	V8）
+    - 公式 2：内核 = 渲染引擎 + JavaScript 引擎 + 其他（Chrome：WebKit → BlinkV8）
 - Chromium 进程模型（5 类进程，一般来说，当 Chrome 在强大的硬件上运行时，可能会将每项服务拆分为不同的进程，以提高稳定性；但如果是在资源有限的设备上，Chrome 会将各项服务合并为一个进程，从而节省内存占用量）
     <img alt="Chrome 服务化"  src="https://developer.chrome.com/static/blog/inside-browser-part1/image/chrome-servification-f06f547c54405.svg?hl=zh-cn" >
     - Browser Process：1 个
@@ -28,25 +28,25 @@
 渲染流水线：
 
 0.  帧开始（Frame Start）-> Input event handlers（合成线程将输入事件传递给主线程）-> requestAnimiationFrame执行
-1. Parsing(bytes → characters → token → nodes → object model (DOM Tree))
+1.  Parsing(bytes → characters → token → nodes → object model (DOM Tree))
     - Loading：Blink 从网络线程接收 bytes
     - Conversion: HTMLParser 将 bytes 转为 characters
     - Tokenizing: 将 characters 转为 W3C 标准的 token(需要注意的是，这一步中如果解析到 link、script、img 标签时会继续发起网络请求；同时解析到 script 时，需要先执行完解析到的 JavaScript，才会继续往后解析 HTML。因为 JavaScript 可能会改变 DOM 树的结构(如 document.write() 等)，所以需要先等待它执行完)
     - Lexing: 通过词法分析将 token 转为 Element 对象
     - DOM construction: 使用构建好的 Element 对象构建 DOM Tree
-2. Style（DOM Tree 输出 Render Tree）
-3. Layout（Render Tree 输出 Layout Tree）
-4. Pre-paint（生成 Property trees，供 Compositor thread 使用，避免某些资源重复 Raster，这里和网易文章中的Render Layer==似乎==是同一个东西）
-5. Paint（Blink 对接 cc 的绘制接口进行 Paint，生成 cc 模块的数据源 cc::Layer，Paint 阶段将 Layout Tree 中的 Layout Object 转换成绘制指令，并把这些操作封装在 cc::DisplayItemList 中，之后将其注入进 cc::PictureLayer 中||“生成绘制指令，这些绘制指令形成了一个绘制列表，在 Paint 阶段输出的内容就是这些绘制列表（SkPicture）。”）
-6. Commit（线程交换数据）
-7. Compositing（为什么需要 Compositor 线程？那我们假设下如果没有这个步骤，Paint 之后直接光栅化上屏又会怎样：如果直接走光栅化上屏，如果 Raster 所需要的数据源因为各种原因，在垂直同步信号来临时没有准备就绪，那么就会导致丢帧，发生 “Janky”。Graphics Layer(又称Compositing Layer)。在 DevTools 中这一步被称为 Composite Layers，主线程中的合成并不是真正的合成。主线程中维护了一份渲染树的拷贝（LayerTreeHost），在合成线程中也需要维护一份渲染树的拷贝（LayerTreeHostImpl）。有了这份拷贝，合成线程可以不必与主线程交互来进行合成操作。因此，当主线程在进行 Javascript 计算时，合成线程仍然可以正常工作而不被打断。
-在渲染树改变后，需要进行着两个拷贝的同步，主线程将改变后的渲染树和绘制列表发送给合成线程，同时阻塞主线程保证这个同步能正常进行，这就是 Composite Layers。这是渲染流水线中主线程的最后一步，换而言之，这一步只是生成了用于合成的数据，并不是真正的合成过程。）
-8. Tiling（根据不同的 scale 级别，不同的大小拆分为多个 cc::TileTask 任务给到 Raster 线程处理）
-9. Raster（位图填充，转化为像素值。这些图块的大小通常是 256256 或者 512512。光栅化可以分为软件光栅化（Software Rasterization）和硬件光栅化（Hardware Rasterization）， 区别在于位图的生成是在 CPU 中进行，之后再上传至 GPU 合成，还是直接在 GPU 中进行绘图和图像素填充）
-10. Activate（实现一个缓冲机制，确保 Draw 阶段操作前 Raster 的数据已准备好。具体而言将 Layer Tree 分成 Pending Tree 与 Active Tree，从 Pending Tree 拷贝 Layer 到 Activate Tree 的过程就是 Activate。）
-11. Draw（合成线程会收集被称为 draw quads 的图块信息用于创建合成帧（compositor frame）。合成帧被发送给 GPU 进程，这一帧结束）
-12. Aggregate（==图像显示，暂时看不懂，没细看==）
-13. Display（==图像显示，暂时看不懂，没细看==）
+2.  Style（DOM Tree 输出 Render Tree）
+3.  Layout（Render Tree 输出 Layout Tree）
+4.  Pre-paint（生成 Property trees，供 Compositor thread 使用，避免某些资源重复 Raster，这里和网易文章中的Render Layer==似乎==是同一个东西）
+5.  Paint（Blink 对接 cc 的绘制接口进行 Paint，生成 cc 模块的数据源 cc::Layer，Paint 阶段将 Layout Tree 中的 Layout Object 转换成绘制指令，并把这些操作封装在 cc::DisplayItemList 中，之后将其注入进 cc::PictureLayer 中||“生成绘制指令，这些绘制指令形成了一个绘制列表，在 Paint 阶段输出的内容就是这些绘制列表（SkPicture）。”）
+6.  Commit（线程交换数据）
+7.  Compositing（为什么需要 Compositor 线程？那我们假设下如果没有这个步骤，Paint 之后直接光栅化上屏又会怎样：如果直接走光栅化上屏，如果 Raster 所需要的数据源因为各种原因，在垂直同步信号来临时没有准备就绪，那么就会导致丢帧，发生 “Janky”。Graphics Layer(又称Compositing Layer)。在 DevTools 中这一步被称为 Composite Layers，主线程中的合成并不是真正的合成。主线程中维护了一份渲染树的拷贝（LayerTreeHost），在合成线程中也需要维护一份渲染树的拷贝（LayerTreeHostImpl）。有了这份拷贝，合成线程可以不必与主线程交互来进行合成操作。因此，当主线程在进行 Javascript 计算时，合成线程仍然可以正常工作而不被打断。
+  在渲染树改变后，需要进行着两个拷贝的同步，主线程将改变后的渲染树和绘制列表发送给合成线程，同时阻塞主线程保证这个同步能正常进行，这就是 Composite Layers。这是渲染流水线中主线程的最后一步，换而言之，这一步只是生成了用于合成的数据，并不是真正的合成过程。）
+8.  Tiling（根据不同的 scale 级别，不同的大小拆分为多个 cc::TileTask 任务给到 Raster 线程处理）
+9.  Raster（位图填充，转化为像素值。这些图块的大小通常是 256256 或者 512512。光栅化可以分为软件光栅化（Software Rasterization）和硬件光栅化（Hardware Rasterization）， 区别在于位图的生成是在 CPU 中进行，之后再上传至 GPU 合成，还是直接在 GPU 中进行绘图和图像素填充）
+10.  Activate（实现一个缓冲机制，确保 Draw 阶段操作前 Raster 的数据已准备好。具体而言将 Layer Tree 分成 Pending Tree 与 Active Tree，从 Pending Tree 拷贝 Layer 到 Activate Tree 的过程就是 Activate。）
+11.  Draw（合成线程会收集被称为 draw quads 的图块信息用于创建合成帧（compositor frame）。合成帧被发送给 GPU 进程，这一帧结束）
+12.  Aggregate（==图像显示，暂时看不懂，没细看==）
+13.  Display（==图像显示，暂时看不懂，没细看==）
 
 
 下面的是网易文章的简洁总结：
@@ -63,7 +63,7 @@
 *   帧结束（Frame End，GraphicsLayer）
 *   图像显示
 *   window\.onload()是等待页面完全加载完毕后触发的事件，而\$(function(){})在DOM树
-构建完毕后就会执行
+  构建完毕后就会执行
 
 
 具体流程参考下面
@@ -73,8 +73,8 @@
 
 *   [浏览器渲染详细过程：重绘、重排和 composite 只是冰山一角](https://juejin.cn/post/6844903476506394638)
 *   [从浏览器渲染原理谈动画性能优化](https://juejin.cn/post/7054055447052943396/#heading-14)
-* [Chromium 渲染流水线——字节码到像素的一生](https://blog.ursb.me/posts/chromium-renderer/)
-* [深入了解现代网络浏览器](https://developer.chrome.com/blog/inside-browser-part1?hl=zh-cn)
+*   [Chromium 渲染流水线——字节码到像素的一生](https://blog.ursb.me/posts/chromium-renderer/)
+*   [深入了解现代网络浏览器](https://developer.chrome.com/blog/inside-browser-part1?hl=zh-cn)
 
 # js中的==
 1. 如果操作数具有相同的类型，则按如下方式进行比较：
@@ -114,7 +114,7 @@
     * 主线程运行的时候，产生堆（heap）和栈（stack）还有"任务队列"（task queue）(任务队列不在主线程外，是运行时产生的，MDN有描述;数据结构上是一个集合，而不是队列；一个 Event Loop 有一个或多个 task queues)
     * 栈中的代码执行完毕，主线程就会去读取"任务队列"
 * 顺序（浏览器）
-<img src="./pic/eventloop.png"></img>
+  <img src="./pic/eventloop.png"></img>
 1. 执行全局Script同步代码，这些同步代码有一些是同步语句，有一些是异步语句（比如setTimeout等）；
 2. 全局Script代码执行完毕后，调用栈Stack会清空；
 3. 从微队列microtask queue中取出位于队首的回调任务，放入调用栈Stack中执行，执行完后microtask queue长度减1；
@@ -163,7 +163,7 @@
 # requestAnimationFrame
 
 1. ==疑惑==:60hz频率下不是应该等待硬件提供的16ms一次的机会来刷新吗？下面截图第二个输出是标准的
-<img src="./pic/requestAnimationFrame 执行截图.png">
+  <img src="./pic/requestAnimationFrame 执行截图.png">
 
 ```javascript
 function test() {
@@ -202,11 +202,11 @@ document.querySelector('button').addEventListener('click', () => {
 ![issue](./pic/github问题.png)
 
 * 理论上，raf 是在微任务队列执行完之后，css计算之前或者说下一个宏任务前执行
-具体可以参考下面的截图，他是从规范中翻译过来的
-<img src='./pic/raf的执行流程.jpg'>
-这个也可以
-<img src="./pic/raf 理论执行时机.png"></img>
- 但是我在阅读文章中有很多例子颠覆我的看法（chrome125）
+  具体可以参考下面的截图，他是从规范中翻译过来的
+  <img src='./pic/raf的执行流程.jpg'>
+  这个也可以
+  <img src="./pic/raf 理论执行时机.png"></img>
+   但是我在阅读文章中有很多例子颠覆我的看法（chrome125）
 ```js
 setTimeout(() => {
   console.log("sto")
@@ -354,9 +354,81 @@ requestAnimationFrame(() => {
 
 
 * [为什么每次requestAnimationFrame的回调第一次都是立即执行？
-](https://www.zhihu.com/question/456804188)
+  ](https://www.zhihu.com/question/456804188)
 * [rAF在EventLoop的表现](https://www.cnblogs.com/zhangmingzhao/p/18028506)
 * [requestAnimationFrame 执行机制探索](https://zhuanlan.zhihu.com/p/432195854)
 * [深入解析 EventLoop 和浏览器渲染、帧动画、空闲回调的关系](https://zhuanlan.zhihu.com/p/142742003)
 * [requestAnimationFrame回调时机](https://zhuanlan.zhihu.com/p/64917985)
 * [html规范](https://html.spec.whatwg.org/multipage/webappapis.html#event-loop-processing-model)
+
+#   requestIdleCallback
+
+浏览器一帧内六个步骤的任务：
+
+- 处理用户的交互
+- JS 解析执行
+- 帧开始。窗口尺寸变更，页面滚去等的处理
+- rAF
+- 布局
+- 绘制
+
+上面六个步骤完成后没超过 16 ms，说明时间有富余，此时就会执行 requestIdleCallback 里注册的任务。
+
+* **对非高优先级的任务使用空闲回调**
+
+* **空闲回调应尽可能不超支分配到的时间**（目前，[`timeRemaining()`](https://developer.mozilla.org/zh-CN/docs/Web/API/IdleDeadline/timeRemaining) 有一个 50 ms 的上限时间，但实际上你能用的时间比这个少，因为在复杂的页面中事件循环可能已经花费了其中的一部分，浏览器的扩展插件也需要处理时间，等等
+
+* **避免在空闲回调中改变 DOM**（如果你的回调需要改变 DOM，它应该使用 Window.requestAnimationFrame() 来调度它。）
+
+* **避免运行时间无法预测的任务**（避免做任何会影响页面布局的事情）
+
+* **在你需要的时候要用 timeout，但记得只在需要的时候才用**（用 timeout 可以保证你的代码按时执行，但是在剩余时间不足以强制执行你的代码的同时保证浏览器的性能表现的情况下，timeout 就会造成延迟或者动画不流畅
+
+  MDN中处理兼容提供的例子（非 polyfill）
+
+  ```js
+  window.requestIdleCallback =
+    window.requestIdleCallback ||
+    function (handler) {
+      let startTime = Date.now();
+
+      return setTimeout(function () {
+        handler({
+          didTimeout: false,
+          timeRemaining: function () {
+            return Math.max(0, 50.0 - (Date.now() - startTime));
+          },
+        });
+      }, 1);
+    };
+
+
+  window.cancelIdleCallback =
+    window.cancelIdleCallback ||
+    function (id) {
+      clearTimeout(id);
+    };
+  ```
+
+
+参考：
+
+- [MDN](https://developer.mozilla.org/zh-CN/docs/Web/API/Background_Tasks_API)
+
+# setTimeOut最小延时问题
+
+- 在浏览器中，`setTimeout` 大致符合 [HTML5 标准](https://link.zhihu.com/?target=https%3A//html.spec.whatwg.org/multipage/timers-and-user-prompts.html%23dom-settimeout)，**如果嵌套的层级超过了 5 层，并且 timeout 小于 4ms，则设置 timeout 为 4ms**
+
+- 在 `nodejs` 中，如果设置的 `timeout` 为 0ms，则会被重置为 1ms，并且没有嵌套限制。
+
+- 在 `deno` 中，也实现了类似 HTML5 标准 的行为，不过其底层是通过 Rust `tokio` 库实现的，该库的延时粒度取决于其执行的环境，某些平台将提供分辨率大于 1 毫秒的计时器。
+
+- 在 `Bun` 中，如果设置的 `timeout` 为 0ms，则会被直接加入到任务队列中，所以 `bun` 中的循环次数会非常高。
+
+  ​
+
+  参考：
+
+- [你真的了解 setTimeout 么？聊聊 setTimeout 的最小延时问题（附源码细节）](https://zhuanlan.zhihu.com/p/614819835)
+
+  ​
