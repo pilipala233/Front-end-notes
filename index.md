@@ -1,3 +1,7 @@
+[TOC]
+
+
+
  # 浏览器渲染过程
 
 前置：
@@ -9,7 +13,7 @@
     - Browser Process：1 个
         - Render & Compositing Thread
         - Render & Compositing Thread Helpers
-    - Utility Process（==还不知道是拿来干嘛的，但是确实是这样分==）：1 个
+    - Utility Process（$ \textcolor{red}{还不知道是拿来干嘛的，但是确实是这样分）}$：1 个
     - Viz Process：1 个
         - GPU main thread
         - Display Compositor Thread
@@ -36,7 +40,7 @@
     - DOM construction: 使用构建好的 Element 对象构建 DOM Tree
 2.  Style（DOM Tree 输出 Render Tree）
 3.  Layout（Render Tree 输出 Layout Tree）
-4.  Pre-paint（生成 Property trees，供 Compositor thread 使用，避免某些资源重复 Raster，这里和网易文章中的Render Layer==似乎==是同一个东西）
+4.  Pre-paint（生成 Property trees，供 Compositor thread 使用，避免某些资源重复 Raster，这里和网易文章中的Render Layer $ \textcolor{red}{似乎}$是同一个东西）
 5.  Paint（Blink 对接 cc 的绘制接口进行 Paint，生成 cc 模块的数据源 cc::Layer，Paint 阶段将 Layout Tree 中的 Layout Object 转换成绘制指令，并把这些操作封装在 cc::DisplayItemList 中，之后将其注入进 cc::PictureLayer 中||“生成绘制指令，这些绘制指令形成了一个绘制列表，在 Paint 阶段输出的内容就是这些绘制列表（SkPicture）。”）
 6.  Commit（线程交换数据）
 7.  Compositing（为什么需要 Compositor 线程？那我们假设下如果没有这个步骤，Paint 之后直接光栅化上屏又会怎样：如果直接走光栅化上屏，如果 Raster 所需要的数据源因为各种原因，在垂直同步信号来临时没有准备就绪，那么就会导致丢帧，发生 “Janky”。Graphics Layer(又称Compositing Layer)。在 DevTools 中这一步被称为 Composite Layers，主线程中的合成并不是真正的合成。主线程中维护了一份渲染树的拷贝（LayerTreeHost），在合成线程中也需要维护一份渲染树的拷贝（LayerTreeHostImpl）。有了这份拷贝，合成线程可以不必与主线程交互来进行合成操作。因此，当主线程在进行 Javascript 计算时，合成线程仍然可以正常工作而不被打断。
@@ -45,8 +49,8 @@
 9.  Raster（位图填充，转化为像素值。这些图块的大小通常是 256256 或者 512512。光栅化可以分为软件光栅化（Software Rasterization）和硬件光栅化（Hardware Rasterization）， 区别在于位图的生成是在 CPU 中进行，之后再上传至 GPU 合成，还是直接在 GPU 中进行绘图和图像素填充）
 10.  Activate（实现一个缓冲机制，确保 Draw 阶段操作前 Raster 的数据已准备好。具体而言将 Layer Tree 分成 Pending Tree 与 Active Tree，从 Pending Tree 拷贝 Layer 到 Activate Tree 的过程就是 Activate。）
 11.  Draw（合成线程会收集被称为 draw quads 的图块信息用于创建合成帧（compositor frame）。合成帧被发送给 GPU 进程，这一帧结束）
-12.  Aggregate（==图像显示，暂时看不懂，没细看==）
-13.  Display（==图像显示，暂时看不懂，没细看==）
+12.  Aggregate（ $ \textcolor{red}{图像显示，暂时看不懂，没细看}$)
+13.  Display（$ \textcolor{red}{图像显示，暂时看不懂，没细看}$）
 
 
 下面的是网易文章的简洁总结：
@@ -129,10 +133,49 @@
 注意：
 - 宏队列macrotask一次只从队列中取一个任务执行，执行完后就去执行微任务队列中的任务；
 - 微任务队列中所有的任务都会被依次取出来执行，知道microtask queue为空；
-- 图中没有画UI rendering的节点，因为这个是由浏览器自行判断决定的(==这很重要，但是具体机制暂不清楚==)，但是只要执行UI rendering，它的节点是在执行完所有的microtask之后，下一个macrotask之前，紧跟着执行UI render
+- 图中没有画UI rendering的节点，因为这个是由浏览器自行判断决定的($ \textcolor{red}{这很重要，但是具体机制暂不清楚}$)，但是只要执行UI rendering，它的节点是在执行完所有的microtask之后，下一个macrotask之前，紧跟着执行UI render
 
 * Node环境
-    ==占坑==
+
+    - timers 阶段。
+
+    在 timers 阶段会执行已经被 `setTimeout()` 和 `setInterval()` 的调度回调函数。
+
+    - pending callbacks 阶段。
+
+    上一次[循环队列](https://www.zhihu.com/search?q=%E5%BE%AA%E7%8E%AF%E9%98%9F%E5%88%97&search_source=Entity&hybrid_search_source=Entity&hybrid_search_extra=%7B%22sourceType%22%3A%22answer%22%2C%22sourceId%22%3A2398610293%7D)中，还未执行完毕的会在这个阶段进行执行。比如延迟到下一个 Loop 之中的 I/O 操作。
+
+    - idle, prepare
+
+    其实这一步我们不需要过多的关系，它仅仅是在 NodeJs 内部调用。我们无法进行操作这一步，所以我们仅仅了解存在 idle prepare 这一层即可。
+
+    - poll
+
+    这一阶段被称为[轮询](https://www.zhihu.com/search?q=%E8%BD%AE%E8%AF%A2&search_source=Entity&hybrid_search_source=Entity&hybrid_search_extra=%7B%22sourceType%22%3A%22answer%22%2C%22sourceId%22%3A2398610293%7D)阶段，它主要会检测新的 I/O 相关的回调，需要注意的是这一阶段会存在阻塞（也就意味着这之后的阶段可能不会被执行）。`setImmediate()`和`setTimeout()`不是一定先timer后check,可能提前执行，所以下图才会这么画。官方也存在描述
+
+    - check
+
+    check 阶段会检测 `setImmediate()` 回调函数在这个阶段进行执行。
+
+    - close callbacks
+
+    这个阶段会执行一系列关闭的[回调函数](https://www.zhihu.com/search?q=%E5%9B%9E%E8%B0%83%E5%87%BD%E6%95%B0&search_source=Entity&hybrid_search_source=Entity&hybrid_search_extra=%7B%22sourceType%22%3A%22answer%22%2C%22sourceId%22%3A2398610293%7D)，比如如：`socket.on('close', ...)`。
+
+    **其实 NodeJs 中的事件循环机制主要就是基于以上几个阶段，但是对于我们比较重要的来说仅仅只有 timers、poll 和 check 阶段，因为这三个阶段影响着我们代码书写的执行顺序。**
+
+    几个注意点：
+
+    * node事件队列本质和浏览器中是类似的，虽然 NodeJs 下存在多个[执行队列](https://www.zhihu.com/search?q=%E6%89%A7%E8%A1%8C%E9%98%9F%E5%88%97&search_source=Entity&hybrid_search_source=Entity&hybrid_search_extra=%7B%22sourceType%22%3A%22answer%22%2C%22sourceId%22%3A2398610293%7D)，但是每次执行逻辑是相同的：**同样是执行完成一个宏任务后会立即清空当前队列中产生的所有微任务。**
+
+      >  当然在 NodeJs < 10.0 下的版本，它是会清空一个队列之后才会清空当前队列下的所有 Micro。
+
+    * `setImmediate()`和`setTimeout()`先后顺序执行取决于timer的延迟时间以及电脑性能（看参考文章中的知乎回答，写得非常好
+
+    * 面试题：如何保证setImmediate()先于setTimeout()执行。（异步IO回调操作中肯定先check阶段才是timer
+
+    ​
+
+    <img src="./pic/nodeeventloop.png"></img>
 
 
 
@@ -148,7 +191,7 @@
     - Promise.then()/catch()
     - 以 Promise 为基础开发的其他技术，例如 fetch API
     - V8 的垃圾回收过程
-    - Node 独有的 process.nextTick
+    - Node 独有的 process.nextTick（这个其实官方并不是这么认为，但是可以这么理解）
     - Object.observe
 
 
@@ -158,11 +201,13 @@
 
 *   [带你彻底弄懂Event Loop](https://segmentfault.com/a/1190000016278115#item-2-1)
 *   [JS 基础知识点及常考面试题（二）](https://zhuanlan.zhihu.com/p/508403469)
+*   [关于Node.js EventLoop的poll阶段该如何理解？ - WangHaoyu的回答 - 知乎](https://www.zhihu.com/question/330124623/answer/2398610293)
+    ​
 
 
 # requestAnimationFrame
 
-1. ==疑惑==:60hz频率下不是应该等待硬件提供的16ms一次的机会来刷新吗？下面截图第二个输出是标准的
+1. $ \textcolor{red}{疑惑}$:60hz频率下不是应该等待硬件提供的16ms一次的机会来刷新吗？下面截图第二个输出是标准的
   <img src="./pic/requestAnimationFrame 执行截图.png">
 
 ```javascript
@@ -185,7 +230,12 @@ test();
 2. RAF是宏任务还是微任务还是有争议的，我认为应该单独拿出来算（就像上面的渲染管线流程图一样），对于运行时机需要考虑浏览器以及具体代码，不能简单约等于微任务
 3. 浏览器新旧版本执行差异很大，很多文章的代码执行顺序已经发生变化了
 
-==现在这段代码所有最新版浏览器都是从右往左移动了，是不是间接说明了现在主流浏览器执行 requestAnimationFrame 回调的时机是在 1 帧渲染之后，所以当前帧调用的 requestAnimationFrame 会在下一帧呈现==
+
+$ \textcolor{red}{在这段代码所有最新版浏览器都是从右往左移动了，\\是不是间接说明了现在主流浏览器执行 requestAnimationFrame 回调的时机是在 1 帧渲染之后，\\所以当前帧调用的 requestAnimationFrame 会在下一帧呈现}$
+
+
+
+
 ```js
 test.style.transform = 'translate(0, 0)';
 document.querySelector('button').addEventListener('click', () => {
@@ -202,9 +252,40 @@ document.querySelector('button').addEventListener('click', () => {
 ![issue](./pic/github问题.png)
 
 * 理论上，raf 是在微任务队列执行完之后，css计算之前或者说下一个宏任务前执行
-  具体可以参考下面的截图，他是从规范中翻译过来的
-  <img src='./pic/raf的执行流程.jpg'>
-  这个也可以
+  具体可以参考下面，是别人文章搬运过来（他从规范中翻译过来的
+
+  1. 从任务队列中取出一个**宏任务**并执行。
+
+  2. 检查微任务队列，执行并清空**微任务**队列，如果在微任务的执行中又加入了新的微任务，也会在这一步一起执行。
+
+  3. 进入更新渲染阶段，判断是否需要渲染，这里有一个 `rendering opportunity` 的概念，也就是说不一定每一轮 event loop 都会对应一次浏览 器渲染，要根据屏幕刷新率、页面性能、页面是否在后台运行来共同决定，通常来说这个渲染间隔是固定的。（所以多个 task 很可能在一次渲染之间执行）
+
+  4. - 浏览器会尽可能的保持帧率稳定，例如页面性能无法维持 60fps（每 16.66ms 渲染一次）的话，那么浏览器就会选择 30fps 的更新速率，而不是偶尔丢帧。
+     - 如果浏览器上下文不可见，那么页面会降低到 4fps 左右甚至更低。
+     - 如果满足以下条件，也会跳过渲染：
+
+  5. 1. 浏览器判断更新渲染不会带来视觉上的改变。
+     2. `map of animation frame callbacks` 为空，也就是帧动画回调为空，可以通过 `requestAnimationFrame` 来请求帧动画。
+
+  6. 如果上述的判断决定本轮**不需要渲染**，那么**下面的几步也不会继续运行**：
+
+     > This step enables the user agent to prevent the steps below from running for other reasons, for example, to ensure certain tasks are executed immediately after each other, with only microtask checkpoints interleaved (and without, e.g., animation frame callbacks interleaved). Concretely, a user agent might wish to coalesce timer callbacks together, with no intermediate rendering updates. 有时候浏览器希望两次「定时器任务」是合并的，他们之间只会穿插着 `microTask`的执行，而不会穿插屏幕渲染相关的流程（比如`requestAnimationFrame`，下面会写一个例子）。
+
+  7. 对于需要渲染的文档，如果窗口的大小发生了变化，执行监听的 `resize` 方法。
+
+  8. 对于需要渲染的文档，如果页面发生了滚动，执行 `scroll` 方法。
+
+  9. 对于需要渲染的文档，执行帧动画回调，也就是 **requestAnimationFrame** 的回调。（后文会详解）
+
+  10. 对于需要渲染的文档， 执行 IntersectionObserver 的回调。
+
+  11. 对于需要渲染的文档，**重新渲染**绘制用户界面。
+
+  12. 判断 `task队列`和`microTask`队列是否都为空，如果是的话，则进行 `Idle` 空闲周期的算法，判断是否要执行 **requestIdleCallback** 的回调函数。（后文会详解）
+
+  对于`resize` 和 `scroll`来说，并不是到了这一步才去执行滚动和缩放，那岂不是要延迟很多？浏览器当然会立刻帮你滚动视图，根据CSSOM 规范[2]所讲，浏览器会保存一个 `pending scroll event targets`，等到事件循环中的 `scroll`这一步，去派发一个事件到对应的目标上，驱动它去执行监听的回调函数而已。`resize`也是同理。
+
+  也可以参考下图：
   <img src="./pic/raf 理论执行时机.png"></img>
    但是我在阅读文章中有很多例子颠覆我的看法（chrome125）
 ```js
@@ -275,14 +356,12 @@ queueMicrotask(() => console.log("mic"))
 
 </body>
 </html>
-
 ```
-但又有个新的问题 ==“一个时间循环时间”浏览器怎么判断的呢==
-参考：
+但又有个新的问题 
 
+$ \textcolor{red}{“一个事件循环时间”浏览器怎么判断的呢，\\60hz频率下16ms?减去插件或者其他渲染相关，10ms左右一个事件循环??}$
 
-
-==疑惑：下面多跑几次就发现执行结果顺序不一定，上面的则不会==
+$ \textcolor{red}{疑惑：下面多跑几次就发现执行结果顺序不一定，上面的则不会 \\（我都点怀疑是不是和node 中timer和check的问题类似}$
 
 ```js
 setTimeout(() => {
@@ -343,18 +422,16 @@ new Promise((resolve) => {
 requestAnimationFrame(() => {
     console.log('animation’');
 });
-
 ```
 
 
 
 <img src="./pic/raf多次执行结果不一致2.png"></img>
 
+参考：
 
 
-
-* [为什么每次requestAnimationFrame的回调第一次都是立即执行？
-  ](https://www.zhihu.com/question/456804188)
+* [为什么每次requestAnimationFrame的回调第一次都是立即执行](https://www.zhihu.com/question/456804188)
 * [rAF在EventLoop的表现](https://www.cnblogs.com/zhangmingzhao/p/18028506)
 * [requestAnimationFrame 执行机制探索](https://zhuanlan.zhihu.com/p/432195854)
 * [深入解析 EventLoop 和浏览器渲染、帧动画、空闲回调的关系](https://zhuanlan.zhihu.com/p/142742003)
@@ -402,7 +479,6 @@ requestAnimationFrame(() => {
       }, 1);
     };
 
-
   window.cancelIdleCallback =
     window.cancelIdleCallback ||
     function (id) {
@@ -425,10 +501,174 @@ requestAnimationFrame(() => {
 
 - 在 `Bun` 中，如果设置的 `timeout` 为 0ms，则会被直接加入到任务队列中，所以 `bun` 中的循环次数会非常高。
 
-  ​
+
 
   参考：
 
 - [你真的了解 setTimeout 么？聊聊 setTimeout 的最小延时问题（附源码细节）](https://zhuanlan.zhihu.com/p/614819835)
 
-  ​
+# scorll和resize节流
+
+> `resize`和`scroll`事件其实自带节流，它只在 Event Loop 的渲染阶段去派发事件到 `EventTarget` 上。
+
+- 防抖动：防抖技术即是可以把多个顺序地调用合并成一次，也就是在一定时间内，规定事件被触发的次数（我只执行你最后一次停下后的操作回调，你一直给我就一直取消执行前面的）。
+- 节流函数：只允许一个函数在 X 毫秒内执行一次，只有当上一次函数执行后过了你规定的时间间隔，才能进行下一次该函数的调用,一定时间内至少执行一次我们希望触发的事件 handler（我只执行你第一次操作，操作完了才接受新回调）。
+
+scroll防抖
+
+```js
+// 防抖动函数
+function debounce(func, wait, immediate) {
+    var timeout;
+    return function() {
+        var context = this, args = arguments;
+        var later = function() {
+            timeout = null;
+            if (!immediate) func.apply(context, args);
+        };
+        var callNow = immediate && !timeout;
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+        if (callNow) func.apply(context, args);
+    };
+};
+ 
+var myEfficientFn = debounce(function() {
+    // 滚动中的真正的操作
+}, 250);
+ 
+// 绑定监听
+window.addEventListener('resize', myEfficientFn);
+```
+
+scroll 节流
+
+```js
+// 简单的节流函数
+function throttle(func, wait, mustRun) {
+    var timeout,
+        startTime = new Date();
+ 
+    return function() {
+        var context = this,
+            args = arguments,
+            curTime = new Date();
+ 
+        clearTimeout(timeout);
+        // 如果达到了规定的触发时间间隔，触发 handler
+        if(curTime - startTime >= mustRun){
+            func.apply(context,args);
+            startTime = curTime;
+        // 没达到触发间隔，重新设定定时器
+        }else{
+            timeout = setTimeout(func, wait);
+        }
+    };
+};
+// 实际想绑定在 scroll 事件上的 handler
+function realFunc(){
+    console.log("Success");
+}
+// 采用了节流函数
+window.addEventListener('scroll',throttle(realFunc,500,1000));
+```
+
+scroll 节流(raf版本)
+
+```js
+let lastKnownScrollPosition = 0;
+let ticking = false;
+
+function doSomething(scrollPos) {
+  // 利用滚动位置完成一些事情
+}
+
+document.addEventListener("scroll", (event) => {
+  lastKnownScrollPosition = window.scrollY;
+
+  if (!ticking) {
+    window.requestAnimationFrame(() => {
+      doSomething(lastKnownScrollPosition);
+      ticking = false;
+    });
+
+    ticking = true;
+  }
+});
+// 滚动事件监听（类似上面的throttle(func, xx, 16.7) 
+window.addEventListener('scroll', onScroll, false);
+
+```
+
+> 然而需要注意的是，输入事件和动画帧的触发速度大致相同，因此通常不需要下述优化。此示例使用 `requestAnimationFrame` 优化 `scroll` 事件。
+
+
+
+resize(防抖)
+
+```js
+var timeout = false // holder for timeout id
+var delay = 250 // delay after event is "complete" to run callback
+   
+
+// window.resize callback function
+function doSomething() {
+  console.log('yoo')
+}
+
+// window.resize event listener
+window.addEventListener('resize', function() {
+  // clear the timeout
+  clearTimeout(timeout);
+  // start timing for event "completion"
+  timeout = setTimeout(doSomething, delay);
+});
+
+
+```
+
+
+
+
+
+resize(节流)
+
+```js
+
+var delay = 250, // delay between calls
+    throttled = false // are we currently throttled?
+   
+
+// window.resize callback function
+function doSomething() {
+  console.log('yoo')
+}
+
+
+// window.resize event listener
+window.addEventListener('resize', function() {
+  // only run if we're not throttled
+  if (!throttled) {
+    // actual callback action
+    doSomething();
+    // we're throttled!
+    throttled = true;
+    // set a timeout to un-throttle
+    setTimeout(function() {
+      throttled = false;
+    }, delay);
+  }  
+});
+
+
+
+```
+
+参考：
+
+- [Optimizing window.onresize](https://web.archive.org/web/20220714020647/https://bencentra.com/code/2015/02/27/optimizing-window-resize.html)
+- [[【前端性能】高性能滚动 scroll 及页面渲染优化](https://www.cnblogs.com/coco1s/p/5499469.html)](https://www.cnblogs.com/coco1s/p/5499469.html)
+- [Document：scroll 事件](https://developer.mozilla.org/zh-CN/docs/Web/API/Document/scroll_event)
+
+
+
