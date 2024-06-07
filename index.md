@@ -672,3 +672,377 @@ window.addEventListener('resize', function() {
 
 
 
+
+# 原型链
+
+没啥好说的，就是下图全概括了
+
+<img src="./pic/原型链图.png"></img>
+
+
+
+控制台打印实例对象身上的`[[Prototype]]`似乎就是`__proto__`
+
+
+
+# Javascript如何实现继承
+
+- 原型链继承
+
+  ```js
+  function Parent(){
+  		this.name ='parent1';
+    		this.play=[1,2,3]
+  }
+  function child(){
+    this.type ='child2'
+  };
+  child.prototype =new Parent();
+  console.log(new child())
+  ```
+
+改变 s1 的 play 属性，会发现 s2 也跟着发生变化了，这是因为两个实例使用的是同一个原型对象，内存空间是共享的
+  ```js
+
+  var s1 = new child();
+  var s2 = new child();
+  s1.play.push(4);
+  console.log(s1.play,s2.play);//[1,2,3,4]
+  ```
+
+  
+
+- 构造函数继承(借助 call)
+
+```js
+function Parent(){
+  this.name ='parent1'
+};
+Parent.prototype.getName=function(){
+  return this.name
+};
+function Child(){
+  Parent.call(this);
+  this.type ='child'
+}
+let child = new Child();
+console.log(child);
+console.log(child.getName()); // 报错
+```
+
+可以看到，父类原型对象中一旦存在父类之前自己定义的方法，那么子类将无法继承这些方法相比第一种原型链继承方式，父类的引用属性不会被共享，优化了第一种继承方式的弊端，但是只能继承父类的实例属性和方法，不能继承原型属性或者方法
+
+- 组合继承
+
+```js
+function Parent3 () {
+ this.name = 'parent3';
+ this.play = [1, 2, 3];
+}
+Parent3.prototype.getName = function () {
+ return this.name;
+}
+function Child3() {
+ // 第二次调用Parent3()
+ Parent3.call(this);
+ this.type = 'child3';
+}
+// 第一次调用Parent3()
+Child3.prototype = new Parent3();
+// 这一步不是必要，只是让结构看起来更规范
+Child3.prototype.constructor = Child3;
+var s3 = new Child3();
+var s4 = new Child3();
+s3.play.push(4);
+console.log(s3.play, s4.play); //不互相影响 
+console.log(s3.getName()); // 'parent3'
+console.log(s4.getName()); // 'parent3'
+```
+
+这种方式看起来就没什么问题，方式一和方式二的问题都解决了，但是从上面代码我们也可以看到 Palent3 执行了两次，造成了多构造一次的性能开销
+
+- 原型式继承
+
+```js
+let parent4 = {
+ 	name: "parent4",
+ 	friends: ["p1", "p2", "p3"],
+ 	getName: function() {
+ 		return this.name;
+ 	}
+ };
+ let person4 = Object.create(parent4);
+ person4.name = "tom";
+ person4.friends.push("jerry");
+ let person5 = Object.create(parent4);
+ person5.friends.push("lucy");
+ console.log(person4.name); // tom
+ console.log(person4.name === person4.getName()); // true
+ console.log(person5.name); // parent4
+ console.log(person4.friends); // ["p1", "p2", "p3","jerry","lucy"]
+ console.log(person5.friends); // ["p1", "p2", "p3","jerry","lucy"]
+```
+
+这种继承方式的缺点也很明显，因为 0bject.create 方法实现的是浅拷贝，多个实例的引用类型属性指向相同的内存，存在篡改的可能
+
+- 寄生式继承
+
+```js
+let parent5 = {
+ 	name: "parent5",
+ 	friends: ["p1", "p2", "p3"],
+ 	getName: function() {
+ 		return this.name;
+ 	}
+};
+function clone(original) {
+ 	let clone = Object.create(original);
+ 	clone.getFriends = function() {
+ 		return this.friends;
+ 	};
+ 	return clone;
+}
+let person5 = clone(parent5);
+let person6 = clone(parent5);
+ person6.friends.push("lucy");
+console.log(person5.getName()); // parent5
+console.log(person5.getFriends()); // ["p1", "p2", "p3", "lucy"]
+```
+
+寄生式继承在上面继承基础上进行优化，利用这个浅拷贝的能力再进行增强，添加一些方法(其实和上面的区别不大，我认为只是另一种写法罢了)，缺点还是和原型式一样
+
+- 寄生组合式继承
+
+```js
+function clone (parent, child) {
+ // Object.create 其实就是这里有区别而已，不用实例化一次，至于性能我不确定和直接实例化有什么优势
+ child.prototype = Object.create(parent.prototype);
+ child.prototype.constructor = child;
+}
+function Parent6() {
+ this.name = 'parent6';
+ this.play = [1, 2, 3];
+}
+Parent6.prototype.getName = function () {
+ return this.name;
+}
+function Child6() {
+ Parent6.call(this);
+ this.friends = 'child5';
+}
+clone(Parent6, Child6);
+Child6.prototype.getFriends = function () {
+ return this.friends;
+}
+let person6 = new Child6();
+console.log(person6); //{friends:"child5",name:"child5",play:[1,2,3],__pro
+//to__:Parent6}
+console.log(person6.getName()); // parent6
+console.log(person6.getFriends()); // child5
+
+```
+
+* es6
+
+  ```js
+  class Person {
+   constructor(name) {
+   this.name = name
+   }
+   // 原型方法
+   // Person.prototype.getName = function() { }
+   // getName() {...}
+   getName = function () {
+   console.log('Person:', this.name)
+   }
+  }
+  class Gamer extends Person {
+   constructor(name, age) {
+   // 子类中存在构造函数，则需要在使用“this”之前首先调用 super()
+   super(name)
+   this.age = age
+   }
+  }
+  const asuna = new Gamer('Asuna', 20)
+  asuna.getName() // 成功访问到分类
+  ```
+
+  利用 babel 工具进行转换，我们会发现 extends 实际采用的也是寄生组合继承方式，因此也证明了这种方式是较优的解决继承的方式
+
+总结如下图：但是我觉得就三类，构造函数继承和原型链继承以及使用object.create 方案（所实话这种拷贝继承的我觉得也怪怪的
+
+<img src="./pic/继承总结图.png"></img>
+
+
+
+# 使用extends后的原型链
+
+* 当需要extnes继承的时候,class lily(你可以理解为function liLy())的隐式原型会被指向到class people (你可以理解为function people())而不是传统的Function.prototype,那这样有什么作用呢，其实我觉得就是修正继承的显示而已
+
+```js
+  class People {
+        constructor(name, age) {
+            this.name = name;
+            this.age = age;
+        }
+        say(){
+            alert("yoo")
+        }    
+    }
+    let test=new People("zz",'dd')
+    console.log(test)
+
+    class lily extends People{
+        constructor(...arg){
+            super(...arg)
+        }
+        happy(){
+            alert('zggg')
+        }
+    }
+    let test3=new lily('tt','yy')
+    console.log(test3)
+
+    function yoo(name,age){
+        this.name=name
+        this.age=age
+    }
+    yoo.prototype.say=function(){
+        alert('ddd')
+    }
+    let test2=new yoo('haha','jiji')
+    console.log(test2)
+```
+
+<img src="./pic/extend 的原型链图.png">
+
+
+
+* 属性会给实例对象，方法会给上层原型身上
+
+```js
+	class People {
+        constructor(name, age) {
+            this.name = name;
+            this.age = age;
+        }
+                test=22
+        say(){
+            alert("yoo")
+        }    
+    }
+    let test=new People("zz",'dd')
+    console.log(test)
+```
+
+
+
+# call、bind、apply
+
+- 三者都可以改变函数的 this 对象指向
+- 三者第一个参数都是 this 要指向的对象，如果如果没有这个参数或参数为 undefined 或 null，则默认指向全局 window
+- 三者都可以传参，但是 apply 是数组，而call是参数列表，且 apply 和 call 是一次性传入参数，而 bind 可以分为多次传入
+
+```js
+
+ function foo() {
+     console.log(this.value);
+ };
+
+ obj = {
+     value: 10
+ };
+ obj1 = {
+     value: 100
+ };
+ obj2 = {
+     value: 1000
+ };
+ var p = foo.bind(obj).bind(obj1).bind(obj2);
+ p();//10
+```
+
+多次绑定bind只是一直在改变this的指向，最终还是变回第一次绑定的this。所以bind多次绑定是无效，只有第一次有效果(从最右边往左看)
+
+- bind 是返回绑定this之后的函数，apply、call 则是立即执行
+
+# sort
+旧版使用[插入排序（长度＜=10）和快排](https://github.com/v8/v8/blob/ad82a40509c5b5b4680d4299c8f08d6c6d31af3c/src/js/array.js)，但是自es2019起规范要求使用稳定算法，所以
+新版使用[timsort排序算法](https://github.com/v8/v8/blob/main/third_party/v8/builtins/array-sort.tq)，如果你要看js版本放进浏览器测试那看这个[答案](https://stackoverflow.com/questions/15606290/how-to-use-timsort-in-javascript)
+
+- 按照32的长度进行分块，我们直接看32时是怎么处理的（大于的没看怎么分）
+
+```js
+ 
+        function binarySort(a, lo, hi, start, compare) {
+            if (start == lo) start++;
+            for (; start < hi; start++) {
+                var pivot = a[start];
+
+                // Set left (and right) to the index where a[start] (pivot) belongs
+                var left = lo;
+                var right = start;
+                /*
+                * Invariants: pivot >= all in [lo, left). pivot < all in [right, start).
+                */
+                while (left < right) {
+				//这个会找偏后点的，比如1234找3，为什么，因为默认第一位算法已经排好序的了
+                    var mid = (left + right) >>> 1;
+                    if (compare(pivot, a[mid]) < 0)
+                        right = mid;
+                    else
+                        left = mid + 1;
+                }
+
+                var n = start - left; // The number of elements to move
+                // Switch is just an optimization for arraycopy in default case
+                switch (n) {
+                    case 2:
+                        a[left + 2] = a[left + 1];
+                    case 1:
+                        a[left + 1] = a[left];
+                        break;
+                    default:
+                        arraycopy(a, left, a, left + 1, n);
+                }
+                a[left] = pivot;
+            }
+        }
+
+
+        function countRunAndMakeAscending(a, lo, hi, compare) {
+            var runHi = lo + 1;
+
+            // Find end of run, and reverse range if descending
+            if (compare(a[runHi++], a[lo]) < 0) { // Descending
+                while (runHi < hi && compare(a[runHi], a[runHi - 1]) < 0) {
+                    runHi++;
+                }
+                reverseRange(a, lo, runHi);
+            } else { // Ascending
+                while (runHi < hi && compare(a[runHi], a[runHi - 1]) >= 0) {
+                    runHi++;
+                }
+            }
+
+            return runHi - lo;
+        }
+
+
+```
+
+ `countRunAndMakeAscending`函数负责找最小的转折点，就是升序和降序的转折点，（如果我传的对比函数是升序）降序时要反转成升序。
+
+- `countRunAndMakeAscending`返回的值肯定大于等于2（看了代码就知道为什么了
+-  `binarySort`就是常见的二分插入了
+
+我认为以上这是一种优化了的二分插入算法
+
+
+
+参考：
+
+- [tim排序](https://oi-wiki.org/basic/tim-sort/)
+- [js实现](https://github.com/Scipion/interesting-javascript-codes/blob/master/timsort.js)
+
+# 
