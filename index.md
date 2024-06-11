@@ -1034,7 +1034,7 @@ console.log(person6.getFriends()); // child5
  `countRunAndMakeAscending`函数负责找最小的转折点，就是升序和降序的转折点，（如果我传的对比函数是升序）降序时要反转成升序。
 
 - `countRunAndMakeAscending`返回的值肯定大于等于2（看了代码就知道为什么了
--  `binarySort`就是常见的二分插入了
+- `binarySort`就是常见的二分插入了
 
 我认为以上这是一种优化了的二分插入算法
 
@@ -1045,4 +1045,210 @@ console.log(person6.getFriends()); // child5
 - [tim排序](https://oi-wiki.org/basic/tim-sort/)
 - [js实现](https://github.com/Scipion/interesting-javascript-codes/blob/master/timsort.js)
 
-# 
+# addEventListener
+ - 构造函数
+     addEventListener(type, listener);
+     addEventListener(type, listener, options);
+     addEventListener(type, listener, useCapture);Gecko
+
+     addEventListener(type, listener, wantsUntrusted ); // Gecko渲染引擎(Mozilla) 
+
+     ​
+
+ - 参数
+
+     **type** : 字符串，表示事件的类型，例如 `'click'`、`'mouseover'` 等。
+
+     **listener**: 事件触发时执行的函数。
+
+     **options**  ：对象可以包含以下属性：
+
+     - **capture**: 布尔值，表示事件是否在捕获阶段执行。如果为 `true`，事件在捕获阶段触发；如果为 `false`，事件在冒泡阶段触发。
+     - **once**: 布尔值，表示事件监听器是否只执行一次执行后自动移除。如果为 `true`，事件监听器在触发一次后自动被移除。
+     - **passive**: 布尔值，表示事件监听器是否`不会调用 preventDefault`。如果为 `true`，监听器不会调用 `preventDefault`，这对于提升滚动性能非常有用。
+     - **signal**: `AbortSignal` 对象，用于取消事件监听器。
+
+     ```js
+     const button = document.getElementById('myButton');
+     const cancelButton = document.getElementById('cancelButton');
+     const controller = new AbortController();
+     const signal = controller.signal;
+
+     // 定义事件处理函数
+     function handleClick(event) {
+         console.log('Button clicked');
+     }
+
+     // 添加事件监听器，使用 signal 属性
+     button.addEventListener('click', handleClick, { signal: signal });
+
+     // 取消事件监听器
+     cancelButton.addEventListener('click', () => {
+         controller.abort();
+         console.log('Event listener cancelled');
+     });
+
+     ```
+
+     ​
+
+     **useCapture**: 布尔值，表示事件是否在捕获阶段执行。如果为 `true`，事件在捕获阶段触发；如果为 `false`，事件在冒泡阶段触发（默认）。
+
+     **wantsUntrusted**: 可选的布尔值，用于指定是否接收未被信任的事件。默认为 `false`。
+
+     > wantsUntrusted参数的目的是指定是否应该接收和处理未被信任的事件。在早期的浏览器实现中，可能会区分受信任的事件（例如，由用户直接触发的事件）和未受信任的事件（例如，由脚本触发的事件）true为监听器会接收未被信任的事件。false为监听器只会接收受信任的事件。
+
+
+
+
+- ### option 支持的安全检测
+
+```js
+let passiveSupported = false;
+
+try {
+  const options = {
+    get passive() {
+      // 该函数会在浏览器尝试访问 passive 值时被调用。
+      passiveSupported = true;
+      return false;
+    },
+  };
+
+  window.addEventListener("test", null, options);
+  window.removeEventListener("test", null, options);
+} catch (err) {
+  passiveSupported = false;
+}
+
+
+someElement.addEventListener(
+  "mouseup",
+  handleMouseUp,
+  passiveSupported ? { passive: true } : false,
+);
+
+```
+
+* 通过 `passive` 优化性能
+
+在处理滚动事件时，例如：
+
+```
+
+window.addEventListener('scroll', function(event) {
+    // 可能调用 event.preventDefault()
+});
+```
+
+浏览器必须等待监听器执行完成，以确定是否调用 `preventDefault`。这种等待会导致滚动和渲染的延迟，从而影响页面的流畅性和响应速度。
+
+
+
+* 参考：[MDN](https://developer.mozilla.org/zh-CN/docs/Web/API/EventTarget/addEventListener#%E8%AF%AD%E6%B3%95)
+
+
+
+# 阻止事件冒泡和默认行为
+
+- 代码
+
+```js
+//阻止事件冒泡
+event.stopPropagation();
+
+//阻止默认行为
+event.preventDefault();
+
+```
+
+
+
+- HTML 元素的默认行为
+
+1. **<a> (锚点) 标签**
+   - 默认行为：导航到 `href` 属性指定的 URL。
+2. **<form> (表单) 标签**
+   - 默认行为：提交表单数据到 `action` 属性指定的 URL。
+3. **<input> 和 <textarea>**
+   - 默认行为：用户在输入字段中输入文本。
+   - `<input type="checkbox">` 和 `<input type="radio">`：切换选中状态。
+4. **<button> 按钮**
+   - 默认行为：在表单中，点击按钮会提交表单（如果 `type="submit"`）。
+5. **<select> 元素**
+   - 默认行为：展开选项列表并允许用户选择选项。
+6. **<video> 和 <audio> 元素**
+   - 默认行为：播放媒体文件（当用户点击播放按钮时）。
+7. **<img> 标签**
+   - 默认行为：加载并显示图像。
+
+- 常见事件的默认行为
+
+1. **click 事件**
+   - 默认行为：在可点击元素上触发相应的动作，例如，导航到链接，提交表单。
+2. **submit 事件**
+   - 默认行为：提交表单数据。
+3. **keydown 和 keypress 事件**
+   - 默认行为：在文本输入字段中插入字符，触发快捷键操作。
+4. **wheel 事件**
+   - 默认行为：滚动页面或滚动容器内容。
+5. **contextmenu 事件**
+   - 默认行为：打开右键菜单。
+6. **touchstart 和 touchmove 事件**
+   - 默认行为：触摸设备上的触摸滑动和滚动行为。
+7. **mousedown 和 mouseup 事件**
+   - 默认行为：更新元素的激活状态（例如，按钮按下和释放）。
+8. **input 事件**
+   - 默认行为：更新表单控件的值。
+9. **dblclick 事件**
+   - 默认行为：选择文本或触发双击操作。
+10. **focus 和 blur 事件**
+    - 默认行为：元素获得或失去焦点。
+11. **dragstart 和 dragend 事件**
+    - 默认行为：开始和结束拖动操作。
+
+- 阻止默认行为的示例
+
+你可以通过 `event.preventDefault()` 方法来阻止这些默认行为。这允许你自定义事件处理逻辑。例如：
+
+```
+html
+复制代码
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Prevent Default Example</title>
+</head>
+<body>
+    <!-- 阻止链接的默认导航行为 -->
+    <a href="https://www.example.com" onclick="event.preventDefault(); alert('Default behavior prevented');">Click me</a>
+
+    <!-- 阻止表单的默认提交行为 -->
+    <form action="/submit" method="POST" onsubmit="event.preventDefault(); alert('Form submission prevented');">
+        <input type="text" name="name">
+        <button type="submit">Submit</button>
+    </form>
+
+    <!-- 阻止滚动的默认行为 -->
+    <div style="width: 200px; height: 200px; overflow: scroll;" onwheel="event.preventDefault(); alert('Scroll prevented');">
+        <div style="height: 1000px;">Scrollable content</div>
+    </div>
+
+    <!-- 阻止文本输入的默认行为 -->
+    <input type="text" onkeydown="event.preventDefault(); alert('Key down prevented');">
+
+    <!-- 阻止右键菜单的默认行为 -->
+    <div oncontextmenu="event.preventDefault(); alert('Context menu prevented');">Right-click me</div>
+
+    <!-- 阻止触摸滑动的默认行为 -->
+    <div style="width: 200px; height: 200px; overflow: scroll;" ontouchmove="event.preventDefault(); alert('Touch move prevented');">
+        <div style="height: 1000px;">Scrollable content</div>
+    </div>
+</body>
+</html>
+```
+
+
+
+
+
