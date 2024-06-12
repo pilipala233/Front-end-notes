@@ -40,7 +40,7 @@
     - DOM construction: 使用构建好的 Element 对象构建 DOM Tree
 2.  Style（DOM Tree 输出 Render Tree）
 3.  Layout（Render Tree 输出 Layout Tree）
-4.  Pre-paint（生成 Property trees，供 Compositor thread 使用，避免某些资源重复 Raster，这里和网易文章中的Render Layer $ \textcolor{red}{似乎}$是同一个东西）
+4.  Pre-paint（生成 Property trees，供 Compositor thread 使用，避免某些资源重复 Raster。 ）
 5.  Paint（Blink 对接 cc 的绘制接口进行 Paint，生成 cc 模块的数据源 cc::Layer，Paint 阶段将 Layout Tree 中的 Layout Object 转换成绘制指令，并把这些操作封装在 cc::DisplayItemList 中，之后将其注入进 cc::PictureLayer 中||“生成绘制指令，这些绘制指令形成了一个绘制列表，在 Paint 阶段输出的内容就是这些绘制列表（SkPicture）。”）
 6.  Commit（线程交换数据）
 7.  Compositing（为什么需要 Compositor 线程？那我们假设下如果没有这个步骤，Paint 之后直接光栅化上屏又会怎样：如果直接走光栅化上屏，如果 Raster 所需要的数据源因为各种原因，在垂直同步信号来临时没有准备就绪，那么就会导致丢帧，发生 “Janky”。Graphics Layer(又称Compositing Layer)。在 DevTools 中这一步被称为 Composite Layers，主线程中的合成并不是真正的合成。主线程中维护了一份渲染树的拷贝（LayerTreeHost），在合成线程中也需要维护一份渲染树的拷贝（LayerTreeHostImpl）。有了这份拷贝，合成线程可以不必与主线程交互来进行合成操作。因此，当主线程在进行 Javascript 计算时，合成线程仍然可以正常工作而不被打断。
@@ -51,6 +51,10 @@
 11.  Draw（合成线程会收集被称为 draw quads 的图块信息用于创建合成帧（compositor frame）。合成帧被发送给 GPU 进程，这一帧结束）
 12.  Aggregate（ $ \textcolor{red}{图像显示，暂时看不懂，没细看}$)
 13.  Display（$ \textcolor{red}{图像显示，暂时看不懂，没细看}$）
+
+
+
+
 
 
 下面的是网易文章的简洁总结：
@@ -68,6 +72,142 @@
 *   图像显示
 *   window\.onload()是等待页面完全加载完毕后触发的事件，而\$(function(){})在DOM树
   构建完毕后就会执行
+
+
+
+
+
+
+下面是结合GPT的总结：
+
+1. 解析（Parsing）
+
+**输入**：HTML 字节码、CSS 字节码、JavaScript 字节码
+
+**输出**：
+- **DOM 树（Document Object Model）**：HTML 字节码解析生成的树状结构，表示文档的内容和结构。
+- **CSSOM 树（CSS Object Model）**：CSS 字节码解析生成的树状结构，表示样式规则和它们的层叠顺序。
+- **JavaScript 执行上下文**：JavaScript 字节码被解析和执行，可能会修改 DOM 和 CSSOM 树。
+
+2. 样式计算（Style）
+
+**输入**：DOM 树、CSSOM 树
+
+**输出**：Styled DOM 树，其中每个节点包含样式信息。
+
+浏览器将 CSS 样式应用到 DOM 树的各个元素上，计算每个元素的具体样式（例如颜色、字体、尺寸等）。
+
+3. 布局（Layout）
+
+**输入**：Styled DOM 树
+
+**输出**：**布局树（Layout Tree）**
+
+在布局阶段，浏览器根据已应用的样式信息计算每个元素在页面中的位置和尺寸，生成布局树。布局树是 DOM 树的几何表示，包含每个元素的尺寸和位置信息。
+
+4. 生成 Property Trees（Transform、Clip、Effect、Scroll）
+
+**输入**：布局树
+
+**输出**：**Property Trees**
+
+- **Transform Tree**：管理元素的变换属性（如 `transform`）。
+- **Clip Tree**：管理元素的剪裁属性（如 `clip-path`）。
+- **Effect Tree**：管理元素的效果属性（如 `opacity` 和 `filter`）。
+- **Scroll Tree**：管理滚动信息。
+
+这些树在布局完成之后生成，帮助优化后续的绘制和合成操作。
+
+5. 预绘制（Pre-paint）
+
+**输入**：布局树、Property Trees
+
+**输出**：**图层树（Layer Tree）**
+
+在预绘制阶段，浏览器会分析布局树和 Property Trees，生成图层树（Layer Tree）。图层树用于将页面内容划分为多个独立的图层（Render Layer），这些图层可以单独进行绘制和合成，从而提高渲染性能。
+
+6. 绘制（Paint）
+
+**输入**：图层树（Layer Tree）
+
+**输出**：**绘制列表（Display List）**
+
+浏览器会为每个图层生成绘制指令（绘制列表），这些指令描述了如何在屏幕上绘制每个元素（如背景、边框、文本等）。
+
+7. 提交（Commit）
+
+**输入**：绘制列表
+
+**输出**：提交给合成器（Compositor）
+
+绘制列表被提交给合成器，准备进入合成阶段。
+
+8. 合成（Compositing）
+
+**输入**：提交的绘制列表
+
+**输出**：合成层列表（Composited Layer List）
+
+合成器会将不同的图层组合在一起，生成合成层列表。
+
+9. 平铺（Tiling）
+
+**输入**：合成层列表
+
+**输出**：平铺的图块（Tiles）
+
+合成器将每个图层切分成多个小的图块，以便于更高效的渲染和更新。
+
+10. 光栅化（Raster）
+
+**输入**：平铺的图块
+
+**输出**：光栅化的位图（Rasterized Bitmaps）
+
+每个图块被光栅化，转换成实际的像素位图。
+
+11. 激活（Activate）
+
+**输入**：光栅化的位图
+
+**输出**：准备绘制的图层（Ready-to-draw Layers）
+
+光栅化的位图被激活，准备绘制到屏幕上。
+
+12. 绘制（Draw）
+
+**输入**：准备绘制的图层
+
+**输出**：绘制命令（Draw Commands）
+
+合成器生成绘制命令，这些命令将图层绘制到屏幕上。
+
+13. 聚合（Aggregate）
+
+**输入**：绘制命令
+
+**输出**：最终显示的图像（Final Display Image）
+
+所有的绘制命令被聚合，生成最终显示的图像。
+
+14. 显示（Display）
+
+**输入**：最终显示的图像
+
+**输出**：用户看到的屏幕内容
+
+最终的图像被显示到用户的屏幕上，完成整个渲染过程。
+
+
+
+几个我关心的问题：
+
+- **布局树（Layout Tree）**：在布局（Layout）阶段生成，包含每个元素的尺寸和位置信息。
+- **Property Trees**：在布局完成后生成（布局和预绘制之间），管理各种渲染属性（变换、剪裁、效果、滚动）。
+- **图层树（Layer Tree）**：在预绘制（Pre-paint）阶段生成，包含多个独立的图层，用于优化绘制和合成操作。
+
+
+
 
 
 具体流程参考下面
@@ -491,7 +631,7 @@ requestAnimationFrame(() => {
 
 - [MDN](https://developer.mozilla.org/zh-CN/docs/Web/API/Background_Tasks_API)
 
-# setTimeOut最小延时问题
+# setTimeOut最小延时问题（setInterval也一样）
 
 - 在浏览器中，`setTimeout` 大致符合 [HTML5 标准](https://link.zhihu.com/?target=https%3A//html.spec.whatwg.org/multipage/timers-and-user-prompts.html%23dom-settimeout)，**如果嵌套的层级超过了 5 层，并且 timeout 小于 4ms，则设置 timeout 为 4ms**
 
@@ -506,6 +646,10 @@ requestAnimationFrame(() => {
   参考：
 
 - [你真的了解 setTimeout 么？聊聊 setTimeout 的最小延时问题（附源码细节）](https://zhuanlan.zhihu.com/p/614819835)
+
+
+
+
 
 # scorll和resize节流
 
@@ -966,6 +1110,41 @@ console.log(person6.getFriends()); // child5
 
 - bind 是返回绑定this之后的函数，apply、call 则是立即执行
 
+# call 比apply 性能更优
+
+- call 与apply 少两步解析过程，解析入参的数组
+
+
+
+<img src="./pic/apply与call.png"></img>
+
+
+
+测试代码：
+
+```js
+let arr = [10,12,123,432,54,67,678,98,342]; // 随便定义一些参数
+function fn () {}
+
+const name = 'call'
+// const name = 'apply'
+ 
+console.time(name);
+for (let i = 0; i < 99999999; i++) {
+  fn[name](this, ...arr) // call
+  // fn[name](this, arr) // apply
+}
+console.timeEnd(name)
+
+```
+
+
+
+参考：
+
+- [ecma](https://tc39.es/ecma262/multipage/fundamental-objects.html#sec-function.prototype.apply)
+- [JS 探究之 call 和 apply 到底哪个快？](https://juejin.cn/post/7137959904135872549)
+
 # sort
 旧版使用[插入排序（长度＜=10）和快排](https://github.com/v8/v8/blob/ad82a40509c5b5b4680d4299c8f08d6c6d31af3c/src/js/array.js)，但是自es2019起规范要求使用稳定算法，所以
 新版使用[timsort排序算法](https://github.com/v8/v8/blob/main/third_party/v8/builtins/array-sort.tq)，如果你要看js版本放进浏览器测试那看这个[答案](https://stackoverflow.com/questions/15606290/how-to-use-timsort-in-javascript)
@@ -1203,7 +1382,7 @@ event.preventDefault();
 9. **dblclick 事件**
    - 默认行为：选择文本或触发双击操作。
 10. **focus 和 blur 事件**
-    - 默认行为：元素获得或失去焦点。
+   - 默认行为：元素获得或失去焦点。
 11. **dragstart 和 dragend 事件**
     - 默认行为：开始和结束拖动操作。
 
@@ -1211,9 +1390,8 @@ event.preventDefault();
 
 你可以通过 `event.preventDefault()` 方法来阻止这些默认行为。这允许你自定义事件处理逻辑。例如：
 
-```
-html
-复制代码
+```html
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -1250,5 +1428,12 @@ html
 
 
 
+# defer和async
+
+<img src="./pic/defer和async.png"></img>
+
+defer：脚本的加载是异步进行的，但是执行是按照它们在文档中的顺序进行的。换句话说，多个带有 defer 属性的脚本会按照它们在 HTML 中的顺序执行，且会在 DOMContentLoaded 事件之前执行。
+
+   async：脚本的加载和执行都是异步的，不按照它们在文档中的顺序执行。脚本下载完毕后立即执行，不会阻塞 HTML 解析或其他脚本的加载和执行。
 
 
