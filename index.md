@@ -1382,7 +1382,7 @@ event.preventDefault();
 9. **dblclick 事件**
    - 默认行为：选择文本或触发双击操作。
 10. **focus 和 blur 事件**
-   - 默认行为：元素获得或失去焦点。
+  - 默认行为：元素获得或失去焦点。
 11. **dragstart 和 dragend 事件**
     - 默认行为：开始和结束拖动操作。
 
@@ -1436,4 +1436,59 @@ defer：脚本的加载是异步进行的，但是执行是按照它们在文档
 
    async：脚本的加载和执行都是异步的，不按照它们在文档中的顺序执行。脚本下载完毕后立即执行，不会阻塞 HTML 解析或其他脚本的加载和执行。
 
+
+
+# instanceof 和 typeof
+
+* 区别:
+
+  * typeof 会返回一个变量的基本类型，instanceof 返回的是一个布尔值
+  * instanceof 可以准确地判断复杂引用数据类型，但是不能正确判断基础数据类型
+  * 而 typeof 也存在弊端，它虽然可以判断基础数据类型(null 除外)，但是引用数据类型中，除了 function 类型以外，其他的也无法判断
+
+* typeof原理
+
+  > 不同的对象在底层都表示为二进制，在Javascript中二进制前（低）三位存储其类型信息。
+  >
+  > - 000: 对象
+  > - 010: 浮点数
+  > - 100：字符串
+  > - 110： 布尔
+  > - 1： 整数
+  >   typeof null 为"object", 原因是因为 不同的对象在底层都表示为二进制，在Javascript中二进制前（低）三位都为0的话会被判断为Object类型，null的二进制表示全为0，自然前三位也是0，所以执行typeof时会返回"object"。
+  >   一个不恰当的例子，假设所有的Javascript对象都是16位的，也就是有16个0或1组成的序列，猜想如下：
+  >
+  > Array: 1000100010001000
+  > null: 0000000000000000
+  >
+  > typeof [] // "object"
+  > typeof null // "object"
+  > 因为Array和null的前三位都是000。为什么Array的前三位不是100?因为二进制中的“前”一般代表低位， 比如二进制00000011对应十进制数是3，它的前三位是011。
+
+  ​
+
+* instanceof 实现原理
+
+  ```js
+  function myInstanceof(left, right) {
+    // typeof false
+    if(typeof left !== 'object' || left === null) return false;
+    // getProtypeOf Object API
+    let proto = Object.getPrototypeOf(left);
+    while(true) {
+        	if(proto === null) return false;
+        	if(proto === right.prototype) return true;// true
+        	proto = Object.getPrototypeof(proto);
+        }
+    
+  }
+  ```
+
+  ​
+
+参考：
+
+- [2ality – JavaScript and more](https://2ality.com/2013/10/typeof-null.html)
+
+# DOM 事件模型
 
