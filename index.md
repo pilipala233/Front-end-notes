@@ -1611,5 +1611,31 @@ defer：脚本的加载是异步进行的，但是执行是按照它们在文档
 
   ​
 
-  ​
+  # DOM 事件模型
 
+- 事件模型
+
+  - 原始事件模型（DOM0级）
+  - 标准事件模型（DOM2级）
+  - IE事件模型
+
+- 原始事件模型
+
+  只支持冒泡，不支持捕获;同一个类型的事件只能绑定一次(后绑会覆盖前绑)
+
+  - HTML直接绑定
+  - JS直接绑定
+
+- 标准事件绑定
+
+  事件捕获->事件处理->事件冒泡
+
+  - addEventListener和.removeEventListener（eventType 没有on,其他两个需要on）
+
+- IE事件模型
+
+  事件处理->事件冒泡
+
+  - attachEvent和detachEvent
+
+  ​
