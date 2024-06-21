@@ -1345,20 +1345,20 @@ event.preventDefault();
 
 - HTML 元素的默认行为
 
-1. **<a> (锚点) 标签**
+1. `<a>` (锚点) 标签
    - 默认行为：导航到 `href` 属性指定的 URL。
-2. **<form> (表单) 标签**
+2. `<form>` (表单) 标签
    - 默认行为：提交表单数据到 `action` 属性指定的 URL。
-3. **<input> 和 <textarea>**
+3. `<input>` 和 `<textarea>`
    - 默认行为：用户在输入字段中输入文本。
    - `<input type="checkbox">` 和 `<input type="radio">`：切换选中状态。
-4. **<button> 按钮**
+4. `<button>` 按钮
    - 默认行为：在表单中，点击按钮会提交表单（如果 `type="submit"`）。
-5. **<select> 元素**
+5. `<select>` 元素
    - 默认行为：展开选项列表并允许用户选择选项。
-6. **<video> 和 <audio> 元素**
+6. `<video>` 和 `<audio>` 元素
    - 默认行为：播放媒体文件（当用户点击播放按钮时）。
-7. **<img> 标签**
+7. `<img>` 标签
    - 默认行为：加载并显示图像。
 
 - 常见事件的默认行为
