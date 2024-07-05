@@ -1607,11 +1607,9 @@ defer：脚本的加载是异步进行的，但是执行是按照它们在文档
 
 - [js精度丢失问题-看这篇文章就够了(通俗易懂)](https://zhuanlan.zhihu.com/p/100353781)
 
-  ​
 
-  ​
 
-  # DOM 事件模型
+# DOM 事件模型
 
 - 事件模型
 
@@ -1639,3 +1637,137 @@ defer：脚本的加载是异步进行的，但是执行是按照它们在文档
   - attachEvent和detachEvent
 
   ​
+
+# 执行上下文生命周期
+
+
+
+## 前置
+
+  - 不同版本的js 对于执行上下文的结构是不一样的，网上多数的教程是es3和es5,甚至最新版的也在发生变化，但是其核心内容是不变的，我认为问题不大
+  - 记住，js 的作用域是静态的，在解析阶段就已经确定下来了，而不是运行时。this的绑定规则也是如此。
+
+## 什么是执行上下文
+
+  运行js时，当代码执行进入一个环境时，就会为该环境创建一个执行上下文（js解析阶段
+
+## js中执行环境和对应的上下文
+
+  - 全局环境---> 全局执行上下文
+  - 函数环境---> 函数执行上下文
+  - eval函数环境--->eval函数执行上下文
+
+## 过程(es3 版本)
+
+1. 创建上下文阶段
+   - 创建变量对象
+
+     ```js
+     // 创建上下文
+     // fooExecutionContext={
+     //   vo = {
+     //     i:10
+     //     arguments:{0:10,length:1},
+     //     c:指向c那个函数
+     //     a:undefined
+     //     b:undefined
+     //   }
+     // }
+     //上下文执行阶段
+     //   vo = {
+     //     i:10
+     //     arguments:{0:10,length:1},
+     //     c:指向c那个函数
+     //     a:"Hello"
+     //     b:privateB 函数
+     //   }
+     const foo = function(){
+         //console.log(b)
+         //console.log(c)
+         var a = "Hello"
+         var b = function privateB(){}
+         function c(){}
+     }
+     foo(10)
+     ```
+
+     - 确定函数的形参（并赋值）
+     - 函数环境会初始化创建 arguments 对象（并赋值）
+     - 确定普通字面量形式的函数声明（并赋值）
+     - 变量声明，函数表达式声明（未赋值）（如果已经存在不会重复声明）
+   - 确定 this 指向（确定绑定规则：默认绑定、隐式绑定、显示绑定、new 绑定，具体值取决于函数调用时的上下文。）
+   - 确定作用域（词法环境决定，哪里声明定义，就在哪里确定，解析阶段其实就已经确定作用域链，但是具体的值需要运行阶段才清楚）
+
+
+2. 执行阶段
+    - 变量对象赋值
+      - 变量赋值		
+      - 函数表达式赋值
+
+    - 调用函数
+
+    - 顺序执行其他代码
+
+## 过程(es2018 版本)
+不同版本之间可能就是this 或者 函数声明（multiply）的位置是在词法环境还是变量环境，我个人认为这些东西可能还会发生变化，也没有太大必要研究过细，所以知道个老版本的大概就好，这里就不展开详细总结，具体可以看参考链接的文章
+```js
+let a = 20;
+const b = 30;
+var c;
+function multiply(e, f) {
+  var g = 20;
+  return e * f * g;
+}
+c = multiply(20, 30);
+//创建阶段
+GlobalExectionContext = {
+  LexicalEnvironment: {
+    EnvironmentRecord: {
+      Type: "Object",
+      // Identifier bindings go here
+      a: < uninitialized > ,
+      b: < uninitialized > ,
+      multiply: < func >
+    }
+    outer: < null > ,
+    ThisBinding: < Global Object >
+  },
+  VariableEnvironment: {
+    EnvironmentRecord: {
+      Type: "Object",
+      // Identifier bindings go here
+      c: undefined,
+    }
+    outer: < null > ,
+    ThisBinding: < Global Object >
+  }
+}
+
+//执行阶段
+GlobalExectionContext = {
+  LexicalEnvironment: {
+      EnvironmentRecord: {
+        Type: "Object",
+        // Identifier bindings go here
+        a: 20,
+        b: 30,
+        multiply: < func >
+      }
+      outer: <null>,
+      ThisBinding: <Global Object>
+    },
+  VariableEnvironment: {
+      EnvironmentRecord: {
+        Type: "Object",
+        // Identifier bindings go here
+        c: undefined,
+      }
+      outer: <null>,
+      ThisBinding: <Global Object>
+    }
+  }
+
+
+```
+
+  
