@@ -1770,4 +1770,11 @@ GlobalExectionContext = {
 
 ```
 
-  
+ <img src="./pic/关于执行上下文不同版本的区别.png">
+
+参考：
+
+- [ES2018 最新 【译】理解Javascript中的执行上下文和执行栈](https://juejin.cn/post/7129510217863299102)
+- [[译] 理解 JavaScript 中的执行上下文和执行栈](https://juejin.cn/post/6844903682283143181?searchId=202407051344406D55004FCD0E4A29182F)
+- [度一教育]()
+
