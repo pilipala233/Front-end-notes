@@ -1497,7 +1497,25 @@ defer：脚本的加载是异步进行的，但是执行是按照它们在文档
   - 科学计数法：`7.823E5 = 782300`这里`E5`表示10的5次方，再比如`54.3E-2 = 0.543`这里`E-2`表示10的-2次方
 
   - 十进制转二进制：整数除2余数逆序排列。小数部分乘2，直到小数部分为 0 或达到所需精度（存在无法精确表示的数，比如二进制中无法精确表示0.1）。
+  - 只有分母是2的幂的小数才能精确地转换为有限的二进制小数(因为只有0.5*2才会为0，那只有0.25乘2才为0.5，以此类推而0.55这个小数就做不到，所以是无法精确表示的，也就是失精的)
+  ```js
+  
+  0.5
+  十进制: 0.5 = 1/2
+  二进制: 0.1
 
+  0.25
+  十进制: 0.25 = 1/4 = 1/(2^2)
+  二进制: 0.01
+
+  0.75
+  十进制: 0.75 = 3/4 = 3/(2^2)
+  二进制: 0.11
+
+  0.125
+  十进制: 0.125 = 1/8 = 1/(2^3)
+  二进制: 0.001
+  ```
   - 在**二进制系统**中，只有那些能写成分母为2的幂次方的分数才能被精确表示，像0.1这样的数则会变成无限循环小数。在**十进制系统**中，只有那些能写成分母为10的幂次方的分数才能被精确表示，像1/3这样的数则会变成无限循环小数。以此类推。
 
   - 浮点型数据类型主要有：单精度`float`、双精度`double`。javascript以64位双精度浮点数存储所Number类型值 即计算机最多存储64位二进制数。
@@ -1873,3 +1891,372 @@ dpr为4，说明需要用4个渲染像素去进行渲染一个逻辑像素，所
  - [使用Flexible实现手淘H5页面的终端适配-大漠](https://fedev.cn/mobile/lib-flexible-for-html5-layout.html)
  - [再谈Retina下1px的解决方案-大漠](https://fedev.cn/css/fix-1px-for-retina.html)
  - [A tale of two viewports — part two](https://www.quirksmode.org/mobile/viewports2.html)
+
+# JavaScript中的多种进制与进制转换
+## 进制介绍
+JavaScript 中提供的进制表示方法有四种：十进制、二进制、十六进制、八进制。
+对于数值字面量，主要使用不同的前缀来区分：
+
+- 十进制(Decimal)：
+取值数字 0-9；不用前缀。
+- 二进制(Binary)：
+取值数字 0 和 1 ；前缀 0b 或 0B。
+- 十六进制(Hexadecimal)：
+取值数字 0-9 和 a-f ；前缀 0x 或 0X。
+- 八进制(Octal)：
+取值数字 0-7 ；前缀 0o 或 0O (ES6规定)。
+
+>需要注意的是，非严格模式下浏览器支持：如果有前缀0并且后面只用到 0-7 八个数字的数值时，该数值视为八进制；但如果前缀0后面跟随的数字中有8或者9，则视为十进制。
+严格模式下，如果数字加前缀0，则报错：Uncaught SyntaxError: Decimals with leading zeros are not allowed in strict mode。
+各进制的数值，如果取值数字超过给定的范围，则会报错：Uncaught SyntaxError: Invalid or unexpected token
+
+## 进制转换
+
+- 特殊
+
+在JavaScript内部的默认情况下，二进制、十六进制、八进制字面量数值，都会自动转为十进制进行运算(本质应该还是valueOf和toString方法被调用了，内部进行转换但是$ \textcolor{red}{直接字面量我没测试出来是先调用什么方法}$)。
+```js
+0x22 // 34
+0b111 // 7
+0o33 // 27
+0x22 + 0b111 // 41
+0o33 + 12 // 39
+(0x33).toString() // 51
+(0x33).valueOf() // 51
+
+```
+- parseInt(str, radix)
+  - parseInt(string, radix) 函数将 string 转换为由 radix（进制）指定的整数。
+  - radix 的有效值范围是 2 到 36。如果 radix 不是一个合法的数字，或者超出了这个范围，JavaScript 会默认使用 10 作为基数。
+  - 如果 radix 被省略或者值为 0，JavaScript 会根据 string 的格式自动确定基数：
+    - 如果 string 以 0x 或 0X 开头，则基数为 16（十六进制）。
+    - 如果 string 以 0 开头（但不以 0x 或 0X 开头），则基数为 8（八进制）。但在一些 JavaScript 引擎中，八进制已经被弃用，并且它会被当作十进制。
+    - 否则，基数为 10（十进制）。
+
+```js
+parseInt('1111', 2) // 15
+parseInt('1234', 8) // 668
+parseInt('18af', 16) // 6319
+parseInt('1111') // 1111
+parseInt('0x21') // 33
+parseInt('0o21') // 0
+parseInt('0b11') // 0
+parseInt('111', 'add') // 111
+parseInt('111', '787') // NaN
+parseInt('88kk', 16) // 136，=== 0x88
+parseInt('kk', 16) // NaN
+
+```
+- Number()
+可以把字符串转为数字，支持其他进制的字符串，默认转成十进制数字。
+字符串中如果存在无效的进制字符时，返回 NaN。
+记住，需要使用进制前缀，0b，0o，0x。
+```js
+Number('0b11100') // 28
+Number('0o33') // 27
+Number('0x33') //51
+
+Number('0x88kk') // NaN
+```
+- +(一元运算符)
+与 Number() 一样，可以把字符串转为数字，支持其他进制的字符串，默认转成十进制数字。
+字符串中如果存在无效的进制字符时，返回 NaN。
+也需要使用进制前缀。
+```js
++'0b11100' // 28
++'0o33' // 27
++'0x33' //51
+
++'0x88kk' // NaN
+```
+可以看到，基本和 Number() 是一样的，都在本质上是对数字的一种转换处理。
+
+- Number.prototype.toString(radix)
+它支持传入一个进制基数，用于将数字转换成对应进制的字符串，它支持转换小数。
+未指定默认值为 10，基数参数的范围 2-36，超过范围，报错：RangeError。
+```js
+15..toString(2) // 1111
+585..toString(8) // 1111
+4369..toString(16) // 1111
+(11.25).toString(2) // 1011.01
+```
+
+参考：
+- [JavaScript中的多种进制与进制转换](https://www.cnblogs.com/jimojianghu/p/15624693.html)
+
+# 递归溢出处理方案
+查询GPT 给的答案，有些没听过（3,4,5），思路有点意思，这个问题更多的其实是开拓思维使用，能用的也就Trampoline，例子本身其实会在溢出前就精度就无法正确表示了。其他的使用方案要不支持，要不可能很难有使用场景。
+
+
+## 1. 尾递归优化（Tail Call Optimization, TCO）
+
+尾递归优化是一种将递归函数的最后一步操作改为直接返回自身调用结果的技术，这样可以让编译器或解释器优化为迭代形式，从而减少栈空间的使用。（其实没什么用，几乎没几个浏览器现在支持位尾调用优化，但是这种思想其实也在Trampoline中有所体现）
+
+### 示例
+
+```javascript
+'use strict';
+function fibonacciTailRec(n, a = 0, b = 1) {
+    if (n === 0) return a;
+    if (n === 1) return b;
+    return fibonacciTailRec(n - 1, b, a + b);
+}
+
+console.log(fibonacciTailRec(1000)); // 尾递归优化有效
+```
+
+## 2. 循环替换递归（Loop）
+
+将递归函数改写为等效的循环形式，消除递归调用，减少栈空间的使用。
+
+### 示例
+
+```javascript
+function fibonacciIterative(n) {
+    let a = 0, b = 1, temp;
+    for (let i = 2; i <= n; i++) {
+        temp = a + b;
+        a = b;
+        b = temp;
+    }
+    return n === 0 ? a : b;
+}
+
+console.log(fibonacciIterative(1000)); // 循环替换递归
+```
+
+## 3. 使用堆栈来管理状态（Manual Stack Management）
+
+手动使用数组作为堆栈来保存需要的状态，模拟递归过程，从而避免栈溢出。
+
+### 示例
+
+```javascript
+function fibonacciManualStack(n) {
+    let stack = [[0, 0, 1]];
+    let result = 0;
+    while (stack.length > 0) {
+        let [i, a, b] = stack.pop();
+        if (i === n) {
+            result = a;
+        } else {
+            stack.push([i + 1, b, a + b]);
+        }
+    }
+    return result;
+}
+
+console.log(fibonacciManualStack(1000)); // 手动管理堆栈
+```
+
+## 4. 使用异步递归（Async Recursion）
+
+通过将递归调用放在 `setTimeout`、`setImmediate` 或 `Promise` 中来异步执行，避免同步递归调用造成的堆栈溢出。
+
+### 示例
+
+```javascript
+function fibonacciAsync(n, callback) {
+    function next(i, a, b) {
+        if (i === n) {
+            callback(a);
+        } else {
+            setTimeout(() => next(i + 1, b, a + b), 0);
+        }
+    }
+    next(0, 0, 1);
+}
+
+fibonacciAsync(1000, (result) => console.log(result)); // 异步递归
+```
+
+## 5. 节流递归（Throttling Recursion）
+
+通过定期将递归调用事件推迟到下一个事件循环迭代中，避免堆栈溢出。
+
+### 示例
+
+```javascript
+function fibonacciThrottling(n, callback) {
+    function next(i, a, b) {
+        if (i === n) {
+            callback(a);
+        } else {
+            if (i % 100 === 0) {
+                setTimeout(() => next(i + 1, b, a + b), 0);
+            } else {
+                next(i + 1, b, a + b);
+            }
+        }
+    }
+    next(0, 0, 1);
+}
+
+fibonacciThrottling(1000, (result) => console.log(result)); // 节流递归
+```
+
+## 6. Trampoline 函数（Trampoline Function）
+
+Trampoline 是一种编程技巧，允许你改写递归函数，使其成为迭代的，而不需要占用新的调用栈帧。
+
+### 示例
+
+```javascript
+function trampoline(fn) {
+    return function(...args) {
+        let result = fn(...args);
+        while (typeof result === 'function') {
+            result = result();
+        }
+        return result;
+    };
+}
+
+function fibonacciTrampoline(n, a = 0, b = 1) {
+    if (n === 0) return a;
+    if (n === 1) return b;
+    return () => fibonacciTrampoline(n - 1, b, a + b);
+}
+
+const fibonacci = trampoline(fibonacciTrampoline);
+
+console.log(fibonacci(1000)); // Trampoline 技术
+```
+
+## 原始递归实现（未优化）
+
+以下是一个没有进行尾调用优化的原始递归实现斐波那契数列的代码（其实例子有点刻意了，故意分开算：
+
+### 示例
+
+```javascript
+function fibonacci(n) {
+    if (n <= 1) return n;
+    return fibonacci(n - 1) + fibonacci(n - 2);
+}
+
+console.log(fibonacci(10)); // 输出: 55
+```
+
+这个原始递归实现非常直观，但在计算较大的 `n` 时会非常慢，并且很容易导致栈溢出。例如：
+
+```javascript
+console.log(fibonacci(40)); // 可能会导致栈溢出，或者计算时间非常长
+```
+
+# css中各种百分比相对参考
+- 父元素（包含块）：
+
+  - width, height
+  - padding, margin（所有方向都基于父元素的width）
+  - top, right, bottom, left（对于非 static 定位的元素）
+  - font-size
+
+
+- 自身元素：
+
+  - background-position
+  - transform: translate()
+  - line-height
+      - 使用百分比值时，参考父元素的 font-size。
+      - 使用数值时，将这个数值乘以元素的 font-size 得到实际的 line-height。
+# CSS 级联优先级计算（只涉及开发者设置
+## 选择器
+一个选择器的优先级可以说是由三个不同的值（或分量）相加，可以认为是百（ID）+（类）十（元素）三个位数的三个数字：
+
+- **ID**: 选择器中包含 ID 选择器则百位得一分。
+- **类**: 选择器中包含类选择器、属性选择器或者伪类则十位得一分。
+- **元素**: 选择器中包含元素选择器则个位得一分。
+
+> **备注**: 通用选择器（`*`）、组合符（`+`、`>`、`~`、`''`）和伪元素选择器（`:where()`）不会影响优先级。is和where的区别是where 是0-0-0-0优先级
+
+否定（`:not()`）和任意匹配（`:is()`）伪类本身对优先级没有影响，但它们的参数则会带来影响。参数中，对优先级算法贡献的各数的优先级的最大值将作为该伪类选择器的优先级。
+
+
+| 选择器                          | ID | 类 | 元素 | 优先级 |
+|---------------------------------|----|----|------|--------|
+| h1                              | 0  | 0  | 1    | 0-0-1  |
+| h1 + p::first-letter            | 0  | 0  | 3    | 0-0-3  |
+| li > a[href="en-US"] .inline-warning | 0  | 2  | 3    | 0-2-3  |
+| #identifier                     | 1  | 0  | 0    | 1-0-0  |
+| button:not(#mainBtn, .cta)      | 1  | 1  | 1    | 1-1-1  |
+
+## 内联样式
+style 属性内的样式声明，优先于所有普通的样式，无论其优先级如何。这样的声明没有选择器，但它们的优先级可以理解为 1-0-0-0；即无论选择器中有多少个 ID，它总是比其他任何优先级的权重都要高。
+## !important
+开发者能接触到的，跳级联唯一方式
+## @Layer
+@layer 这个 CSS at-rule（AT规则）的语法如下：
+```css
+@layer layer-name {rules};//为了优先级
+@layer layer-name;//为了覆盖声明
+@layer layer-name, layer-name, layer-name;//为了调整优先级，配合第一个用的基本
+@layer {rules};//最纯粹的用法
+```
+使用起来类似这样，这里不打算讲解太细，可以去看张鑫旭的文章或者MDN，下面的代码因为加了important，导致浏览器渲染有BUG，实测最新版的chrome和safari理论上是正确的，但是渲染有问题，而火狐则和理论向相反,目前还是个实验性的特性，而且不同浏览器的实现也有差异
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transition and Animation Cascade Example</title>
+    <style>
+        @layer base {
+            .example {
+                color: red !important;
+               
+            }
+        }
+
+        @layer theme {
+            .example {
+                color: green !important;
+            }
+        }
+
+
+
+        @layer base, theme;
+    </style>
+</head>
+<body>
+    <div class="example">This is a test.</div>
+</body>
+</html> 
+```
+<img src="./pic/@Layer渲染异常.png"  />
+
+## 书写顺序
+同优先权的情况下，后的覆盖前的
+
+参考：
+- [MDN](https://developer.mozilla.org/zh-CN/docs/Learn/CSS/Building_blocks/Cascade_and_inheritance#%E4%BC%98%E5%85%88%E7%BA%A7_2)
+- [详解日后定会大规模使用的CSS @layer 规则](https://www.zhangxinxu.com/wordpress/2022/05/css-layer-rule/)
+- []()
+
+# 级联规则
+一图胜千言（源于张鑫旭，MDN参考的链接也有类似的）
+<img src="./pic/级联优先级.png">
+
+文字版本总结:
+
+1. transition 过渡声明（ $\textcolor{red}{这个我一直找不到也想不出可以测试验证的例子} $）；
+
+2. 设置了 !important 的浏览器内置样式；
+
+3. 设置了 !important 的用户设置的样式；
+4. 前端开发者在 @layer 规则中设置的包含 !important 的样式；
+
+5. 前端开发者平常设置的包含 !important的样式；
+6. animation 动画声明(目前优先级确实已经是这样了，不存在张老师文章中的问题了)；
+7. 前端开发者设置的 CSS 样式。
+8. @layer 规则中的样式；
+9. 用户在浏览器中设置的样式；
+10. 浏览器自身内置的样式；
+
+参考：
+- [MDN英文站](https://developer.mozilla.org/en-US/docs/Web/CSS/@layer)
+- [CSS必学基础：理解CSS中的级联规则](https://www.zhangxinxu.com/wordpress/2022/05/deep-in-css-cascade/)
+- [CSS规范](https://drafts.csswg.org/css-cascade-4/#cascading)
+
