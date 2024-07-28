@@ -239,7 +239,7 @@
     - String to BigInt：使用与 BigInt() 构造函数相同的算法将字符串转换为 BigInt。如果转换失败，返回 false。
 
 其中
-> js核心内置类，会尝试valueOf先于toString；例外的是Date，Date利用的是toString转换。非js核心的对象，令说（比较麻烦，我也不大懂） eg:[].toString() == '' ; [1,2].toString() == '1,2'
+> js核心内置类，会尝试valueOf先于toString；例外的是Date，Date利用的是toString转换。
 
 
 
@@ -2576,9 +2576,264 @@ $\textcolor{red}{说得太浅了，浅到不知道怎么做笔记，有时间再
  - VPN 使用到了IPsec 和 SSL/TLS,一般客户端到站点类型就是使用SSL/TLS,IPsec 两个都可以，多数是用在站点到站点
  - 防范ARP攻击（因为核心是加密，访问https的网页也不需要担心）
  
+# 类型转换
+
+## 对象到原始值的转换
+- 当尝试将对象转换为原始值时：
+  - 首先调用 `valueOf` 方法。
+  - 如果 `valueOf` 返回的仍然是对象，则再次调用 `toString` 方法。（有些是特别的，比如Date）
+
+## 原始值到字符串的转换
+- `null`: `"null"`
+- `undefined`: `"undefined"`
+- 数字 (`number`): `"数字"`
+- `true`: `"true"`
+- `false`: `"false"`
+
+## 原始值到布尔值的转换
+- `null`: `false`
+- `undefined`: `false`
+- 数字 (`0`): `false`
+- 数字（其他）:`true`
+- 字符串 (`""` 空字符串): `false`
+- 字符串 (其他): `true`
+- 对象: `true`
+
+## 原始值到数字的转换
+- `true`: `1`
+- `false`: `0`
+- `null`: `0`
+- `undefined`: `NaN`
+- 空字符串（包括只含空白字符的字符串）: `0`
+- 字符串: 去除引号后，如果内容是数字则转换为该数字，否则为 `NaN`
 
 
 
+# 运算规则
+# css属性值的计算过程
+1. 确定声明值（找到没有冲突的样式，直接作为计算后的样式）
+2. 层叠（冲突的属性进入优先级判断）
+3. 继承（对于仍然没有值的属性，如果可以继承就使用继承）
+4. 使用默认值（如果还没有值可以用就直接使用默认值）
+开发所写的东西只在直接影响前两步，第三第四步只是间接影响。
+- initial读取的是默认值，比如颜色的默认值是透明色
+- inherit用于把父元素的值粘贴过来
+这两个值都是可以用在继承和非继承属性的，但是在实践中，我们需要重置浏览器默认样式时，往往是非继属性用initial,继承属性使用inherit,这是因为取决于我们开发时想达到的目的。
+- unset相当于告诉浏览器前面两部没有设置，属性该继承继承，该使用默认值使用默认值，配合all选择器达成浏览器重置默认样式
+- revert对于可继承样式是和unset表现是一样的，对于非继承的样式是使用浏览器(观察section 的display属性计算值)
+```html
+<style>
+main {
+  color: steelblue;
+
+}
+section {
+  background-color: rgb(215, 215, 250);
+  color: darkgreen;
+  display: block;
+}
+p {
+  color: red;
+}
+section.with-revert {
+  color: revert;
+  display: revert;
+  
+}
+section.with-unset{
+  color: unset;
+  display: unset;
+}
+
+
+</style>
+<body>
+
+  <main>
+    <section>
+      <h3>This h3 will be dark green</h3>
+      <p>Text in paragraph will be red.</p>
+      This stray text will also be dark green.
+    </section>
+    <section class="with-revert">
+      <h3>This h3 will be steelblue</h3>
+      <p>Text in paragraph will be red.</p>
+      This stray text will also be steelblue.
+    </section>
+    <section class="with-unset">
+      <h3>This h3 will be steelblue</h3>
+      <p>Text in paragraph will be red.</p>
+      This stray text will also be steelblue.
+    </section>
+  </main>
+
+</body>
+```
+
+# 父子通讯大总结
+## 父子组件通信
+- prop：用于父组件向子组件传递数据。
+- event：子组件通过 $emit 向父组件发送事件，父组件通过监听这些事件来执行操作。
+- style 和 class：父组件可以通过绑定 style 和 class 属性向子组件传递样式，Vue 会自动合并这些样式。
+- attribute：父组件可以通过普通属性向子组件传递数据。
+- native 修饰符：在父组件中使用 v-on 绑定子组件的原生事件时，使用 .native 修饰符。
+- $listeners：子组件可以通过 $listeners 对象访问父组件传递的所有事件监听器。
+- v-model：用于实现双向绑定，父组件和子组件共享一个数据模型。
+- sync 修饰符：简化父组件向子组件传递数据的过程，并允许子组件直接修改父组件的数据。
+- $parent 和 $children：子组件可以通过 $parent 访问父组件实例，父组件可以通过 $children 访问子组件实例。
+- $slots 和 $scopedSlots：用于父组件向子组件传递插槽内容。
+- ref：用于访问组件实例或 DOM 元素。
+## 跨组件通信
+- Provide 和 Inject：用于祖先组件向后代组件传递数据，适用于深层嵌套的组件结构。
+- router：使用 Vue Router 实现组件间的导航和参数传递。
+- vuex：使用 Vuex 进行全局状态管理，实现跨组件的数据共享和状态管理。
+- store 模式：通过将状态存储在全局对象中，实现组件间的数据共享，就是普通的js暴露对象，然后组件中变成响应式使用而已，但是大家都可以改，很难跟踪是谁改变了状态
+- eventbus：通过事件总线实现非父子关系组件间的通信。
+
+# VUE的MVVM实现原理
+这部分我不打算写很详细，具体的还是要靠自己去看文章和视频或源码自己总结。
+vue2部分我主要是看染陌同学一个开源的框架结合尚硅谷视频以及文章的讲解。vue3部分主要看minivue的实现。
+## vue1
+- 使用Object.defineProperty进行数据劫持
+- 每一个表达式就对应一个watcher，和vue2的组件为单位不同（这是的vue 也还没实现Vnode 和H函数）
+## vue2
+- 先使用Object.defineProperty进行数据劫持，调用的是observe方法，这个方法主要做的就是一件事，实例化一个Observer类，这个类的内部会调用walk方法去进行defineReactive方法递归的数据劫持，其中只有遇到对象才会这个处理
+- defineReactive的方法内有一个dep类，所以实例化的每一个 observe都有对应的一个Dep类进行依赖收集watcher
+- Dep进行依赖收集和订阅发布，watcher就是每一个依赖
+- 怎么解决调用数据getter时触发搜集依赖，因为并不知道当前的依赖是谁。Vue2中使用了一个全局的变量，叫Dep.target。做法就是触发watcher时，先将这个全局变量指向类的本身this,然后触发数据getter时就能拿到。所以parsePath或则渲染函数都会通过watcher这个API主动执行，然后会在执行过程中完成依赖收集。
+<img src="./pic/vue2MVVM.png">
+## vue3
+- vu3和vue2其实依赖收集的原理其实是差不多的，只不过将数据劫持换成了Proxy，watcher 替换成了effect 
+- 不管是Vue2还是Vue3,在render 方法中嗲调用Patch方法内部肯定会主动调用依赖收集的API，所以在根组件的vnode 渲染时就能完成收集，在收集的过程中又递归的调用render函数，所以就完成了全数据的依赖收集
+参考：
+- [剖析Vue实现原理 - 如何实现双向绑定mvvm](https://github.com/DMQ/mvvm?tab=readme-ov-file)
+- [0年前端的Vue响应式原理学习总结1：基本原理](https://juejin.cn/post/6932659815424458760)
+- [剖析 Vue.js 内部运行机制](https://juejin.cn/book/6844733705089449991?enter_from=course_center&utm_source=course_center)
+- [【尚硅谷】Vue源码解析之数据响应式原理](https://www.bilibili.com/video/BV1G54y1s7xV/?spm_id_from=333.999.0.0&vd_source=dbd4e06376cfe7144e0331f427521399)
+
+# vue中的diff算法
+## vue2
+- 头尾指针：在新旧子节点列表的头尾各设置一个指针，从头开始（新头和旧头）和从尾开始（新尾和旧尾）进行比较。
+- 四种情况：
+  - 新头与旧头相比较：如果相同，则移动指针到下一个节点。
+  - 新尾与旧尾相比较：如果相同，则移动指针到前一个节点。
+  - 新头与旧尾相比较：如果相同，则需要将旧尾节点移动到新头位置，并更新指针。
+  - 新尾与旧头相比较：如果相同，则需要将旧头节点移动到新尾位置，并更新指针。
+
+- 其他情况：如果上述情况都不满足，则通过新头节点在旧节点列表中查找匹配项。如果找到，则将该节点移动到新头位置；如果没有找到，则创建新节点。
+## vue3
+- 自前向后比对
+- 自后向前比对
+- 新节点多于旧节点，挂载多的新节点
+- 新节点少于旧节点，卸载多的旧节点
+- 乱序：使用Map，是新节点构成的。存在就用最长递增子序列算法移动，不存在就删除
+## 区别
+- Vue3 的vnode key 是编译时添加的，开发人员呢不需要自己添加了
+- Vue2的是双端对比（新旧一共4个指针），Vue3是3个指针
+- 移动时算法处理不同，Vue2是直接查找下标然后进行移动，Vue3针对乱序是使用最长递增子序列进行移动
+- 乱序时查找是否存在时算法也不同，Vue使用的就是for循环[findIdxInOld](https://github.com/vuejs/vue/blob/main/src/core/vdom/patch.ts#L48),Vue使用了Map 结构减少查询次数
+
+参考：
+- [diff算法](https://juejin.cn/column/7302367564839469082)
+- [minivue288行（放心，这库是按照Vue3实现的）](https://github.com/pilipala233/minivue3/blob/main/src/runtime-core/render.ts)
+
+# 为什么vue2 的Object.defineProperty不处理数组
+- Object.defineProperty不能监听数组长度的动态变化
+- Object.defineProperty能监听数组，但是必需是提前指定好下标这就需要对于数据只要一有变动就必需重新全部进行重新劫持，性能严重浪费
+参考：
+- [vue2为什么不用Object.defineProperty劫持数组](https://juejin.cn/post/7116433294006157319)
+
+
+# vue生命周期
+这里是为了方便串联依赖收集，所以只列举常见的，其他的比如错误的捕获、服务端渲染、keep-alive不列举
+## vue2
+
+### 创建 Vue 实例和创建组件的流程基本一致
+
+1. **首先做一些初始化的操作**，主要是设置一些私有属性到实例中
+
+2. **运行生命周期钩子函数 `beforeCreate`**
+
+3. **进入注入流程**：处理属性、`computed`、`methods`、`data`、`provide`、`inject`，最后使用代理模式将它们挂载到实例中
+
+4. **运行生命周期钩子函数 `created`**
+
+5. **生成 `render` 函数**：如果有配置，直接使用配置的 `render`，如果没有，使用运行时编译器，把模板编译为 `render`
+
+6. **运行生命周期钩子函数 `beforeMount`**
+
+7. **创建一个 `Watcher`，传入一个函数 `updateComponent`，该函数会运行 `render`，把得到的 `vnode` 再传入 `_update` 函数执行**
+   - 在执行 `render` 函数的过程中，会收集所有依赖，将来依赖变化时会重新运行 `updateComponent` 函数
+   - 在执行 `_update` 函数的过程中，触发 `patch` 函数，由于目前没有旧树，因此直接为当前的虚拟 DOM 树的每一个普通节点生成 `elm` 属性，即真实 DOM
+   - 如果遇到创建一个组件的 `vnode`，则会进入组件实例化流程，该流程和创建 Vue 实例基本相同，最终会把创建好的组件挂载 `vnode` 的 `componentInstance` 属性中，以便复用
+
+8. **运行生命周期钩子函数 `mounted`**
+### 重渲染
+
+1. **数据变化后，所有依赖该数据的 `Watcher` 均会重新运行**，这里仅考虑 `updateComponent` 函数对应的 `Watcher`
+
+2. **`Watcher` 会被调度器放到 `nextTick` 中运行**，也就是微队列中，这样是为了避免多个依赖的数据同时改变后被多次执行
+
+3. **运行生命周期钩子函数 `beforeUpdate`**
+
+4. **`updateComponent` 函数重新执行**
+   - 在执行 `render` 函数的过程中，会去掉之前的依赖，重新收集所有依赖，将来依赖变化时会重新运行 `updateComponent` 函数
+   - 在执行 `_update` 函数的过程中，触发 `patch` 函数。新旧两棵树进行对比。
+     - 普通 `html` 节点的对比会导致真实节点被创建、删除、移动、更新
+     - 组件节点的对比会导致组件被创建、删除、移动、更新
+     - 当新组件需要创建时，进入实例化流程
+     - 当旧组件需要删除时，会调用旧组件的 `$destroy` 方法删除组件，该方法会先触发生命周期钩子函数 `beforeDestroy`，然后递归调用子组件的 `$destroy` 方法，然后触发生命周期钩子函数 `destroyed`
+     - 当组件属性更新时，相当于组件的 `updateComponent` 函数被重新触发执行，进入重渲染流程，和本节相同
+
+5. **运行生命周期钩子函数 `updated`**
+
+## Vue 3 （组合式 API）
+
+- 如果选项式 API 和组合式 API 钩子函数重复了，组合式 API 会先执行，比如 `onMounted` 会比 `mounted` 先执行。
+- setup 早于beforeCreate
+### 生命周期钩子函数
+
+- `onMounted()`
+- `onUpdated()`
+- `onUnmounted()`
+- `onBeforeMount()`
+- `onBeforeUpdate()`
+- `onBeforeUnmount()`
+- `onErrorCaptured()`
+- `onRenderTracked()`
+- `onRenderTriggered()`
+- `onActivated()`
+- `onDeactivated()`
+- `onServerPrefetch()`
+
+## Vue 3 （选项式 API）
+
+
+### 生命周期钩子函数
+
+- `beforeCreate`
+- `created`
+- `beforeMount`
+- `mounted`
+- `beforeUpdate`
+- `updated`
+- `beforeUnmount`（替代 `beforeDestroy`）
+- `unmounted`（替代 `destroyed`）
+- `errorCaptured`(子组件的错误)
+- `renderTracked`（响应式收集）
+- `renderTriggered`（响应式收集）
+- `activated`（keep-alive）
+- `deactivated`（keep-alive）
+- `serverPrefetch`（服务端渲染）
+
+
+# webpack 原理实现（占坑
+参考：
+- [手摸手带你实现打包器 仅需 80 行代码理解 webpack 的核心](https://www.bilibili.com/video/BV1oL411V7BQ/?spm_id_from=333.999.0.0&vd_source=dbd4e06376cfe7144e0331f427521399)
+# vuex 原理实现（占坑
+- 参考[1.1.4 vuex原理源码实现](https://www.bilibili.com/video/BV12k4y1C7mq/?spm_id_from=333.999.0.0&vd_source=dbd4e06376cfe7144e0331f427521399)
+# vue-router 原理实现（占坑
+- 参考[1.1.3一步一步带你弄懂vue-router核心原理及实现](https://www.bilibili.com/video/BV14y4y1C7F2/?spm_id_from=333.999.0.0&vd_source=dbd4e06376cfe7144e0331f427521399)
 
 
 
