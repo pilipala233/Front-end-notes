@@ -2875,4 +2875,127 @@ vue2部分我主要是看染陌同学一个开源的框架结合尚硅谷视频�
 
 - 计算 BFC 的高度时，浮动子元素也参与计算（对内，清楚浮动原理依据）
 
+ 
+# DOMContentLoaded 与 load 以及document.onreadystatechange事件
+- DOMContentLoaded 事件在 HTML 文档完全解析并且所有延迟脚本（如 ```<script defer>``` 和 ```<script type="module">```）下载和执行完毕后触发
+- load 事件在整个页面（包括图片、样式表、子框架等所有资源）加载完成后触发
+- document.onreadystatechange（interactive）要先于DOMContentLoaded，MDN中是这样描述的`文档已被解析，正在加载状态结束，但是诸如图像，样式表和框架之类的子资源仍在加载。`,没有明确说明会等待defer 这类异步脚本，而且下面的例子也可以佐证（那个普通js 的脚本不用理会，因为文件比较小，所以放的位置会有一点先后顺序影响，可能会出现比defer 快的情况）
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Event Order Example</title>
+    <link href="https://s1.hdslb.com/bfs/static/jinkela/long/font/medium.css" rel="stylesheet"> <!-- 假设style.css需要时间加载 -->
+    <script src="./test1.js" defer></script>
+ 
+    <script src="./test3.js" async ></script>
+     <script src="./test2.js"></script>  
+
+</head>
+<body>
+    <h1>Hello, world!</h1>
+    
+
+
+</body>
+</html>
+    <!-- 监听 DOMContentLoaded 事件 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOMContentLoaded event triggered');
+        });
+ 
+
+
+        window.addEventListener('load', function() {
+            console.log('Load event triggered');
+        });
+
+          // 监听 document.onreadystatechange 事件
+          document.onreadystatechange = function() {
+              console.log('ReadyState:', document.readyState);
+          };
+      </script>
+```
+## 注意
+- 虽然DOMContentLoaded不会等待css 的解析，但是js 的加载（所有，不管包不包括异步）都是需要等待cssom的构建的，所以会有可能出现DOMContentLoaded间接也等待css 的可能
+- JQuery中的$(function(){})的实现就是DOMContentLoaded、然后document.onreadystatechange和onload 是它的兼容性处理的备选
+
+
+
+# 文档声明
+## 历史背景
+<img src="./pic/HTML历史.png">
+- [SGML、HTML、XML、XHTML、HTML5](https://www.cnblogs.com/huanqna/p/8178057.html)
+## 分类
+- 严格模式（标准模式）
+- 混杂模式（怪异模式）
+- 接近标准模式
+## 严格触发条件
+- 严格的文档声明
+- 有URI的过渡声明
+
+## 混杂模式的触发条件
+- 没有URI的过渡声明
+- 声明不存在或者格式不正确
+
+## 两个模式下的css处理区别（部分）
+1. 盒模型是否包含padding以及border
+2. 是否可设置行内元素的高宽
+3.  在standards模式下，一个元素的高度是由其包含的内容来决定的，如果父元素没有设置高度，子元素设置一个百分比的高度是无效的
+4.  用margin:0 auto设置水平居中在IE下会失效
+5.  quirk模式下设置图片的padding会失效
+6.  quirk模式下Table中的字体属性不能继承上层的设置
+7.  quirk模式下white-space:pre会失效
+
+## html5
+html5不是基于SGML所以不需要DTD，没有DTD自然就没有所谓的严格和怪异之分
+
+参考：
+- [怪异模式和标准模式](https://developer.mozilla.org/zh-CN/docs/Web/HTML/Quirks_Mode_and_Standards_Mode)
+- [不同模式下的区别](https://hsivonen.fi/doctype/)
+- [渡一教育]()
+
+
+# 无障碍实践(todo)
+参考：
+- [MDN无障碍](https://developer.mozilla.org/zh-CN/docs/Web/Accessibility)
+- [渡一教育]()
+# SEO
+## 内部优化
+- 合理的 title、description、keywords：搜索对着三项的权重逐个减小，title 值强调重点即可，重要关键词出现不要超过2次，而且要靠前，不同页面 title 要有所不同；description 把页面内容高度概括，长度合适，不可过分堆砌关键词，不同页面 description 有所不同；keywords 列举出重要关键词即可。
+
+- 语义化的 HTML 代码，符合 W3C 规范：语义化代码让搜索引擎容易理解网页。
+
+- 重要内容 HTML 代码放在最前：搜索引擎抓取 HTML 顺序是从上到下，有的搜索引擎对抓取长度有限制，保证重要内容肯定被抓取。
+
+- 重要内容不要用 js 输出：爬虫不会执行 js 获取内容
+
+- 少用 iframe：搜索引擎不会抓取 iframe 中的内容
+
+- 非装饰性图片必须加 alt
+
+- 提高网站速度：网站速度是搜索引擎排序的一个重要指标
+
+## 外部优化
+- 友情外链
+- 搜索引擎提交你自己的网站（比如百度站长平台
+- 给百度交钱XD
+
+参考：
+- [前端SEO优化](https://blog.csdn.net/yanyihan16/article/details/89209436)
+
+# 微格式（todo）
+
+# 页可见性API
+- document.hidden：一个布尔值属性，指示页面是否对用户隐藏。如果页面被最小化或切换到其他标签页，document.hidden 将为 true；否则为 false。（已废弃）
+- document.visibilityState：一个字符串属性，表示当前页面的可见性状态。它的值可以是：
+  - "visible"：页面对用户可见。
+  - "hidden"：页面对用户不可见（例如，用户切换到了其他标签页或最小化了浏览器）。
+  - "prerender"：页面正在预渲染中（这通常是为了提高页面加载速度）。
+- visibilitychange 事件：当页面的可见性状态发生变化时触发。你可以通过监听这个事件来处理页面可见性状态的变化。
+
+# 如何处理 HTML5 新标签的浏览器兼容问题(TODO)
+
 
