@@ -3040,4 +3040,379 @@ html5不是基于SGML所以不需要DTD，没有DTD自然就没有所谓的严�
 
 # 如何处理 HTML5 新标签的浏览器兼容问题(TODO)
 
+# 移动端1px/0.5px边框的问题
+## 背景
+这两个其实都是同一个道理，本质就是UI想要在DPR2的高分屏下绘制1px,对于开发来说就是要绘制0.5的线。本文的部分探讨有时效性，就好比我自己的部分结论和别人不同（比如viewport那个方案）。
 
+## 方案
+- 直接画（不完美，绘制不均匀）
+- border-image（苹果不显示）
+- background-image（都不均匀）
+- box-shadow（苹果不均匀）
+- svg（完美）
+- transform（完美）
+- 调整viewport（测试不出来，因为本身就能区分0.5和1，更不要提动态设置缩放）
+
+## 测试(ios 17.5.1&安卓via 5.7.1) 
+- 两台设备都是dpr3,其实肉眼都能区分0.5px和1px的区别
+- 完美和不完美主要是某一条边绘制并不均匀，感觉就像0.5px和0.6px 的感觉
+- 完美方案其实就只有两个
+
+## 测试代码
+```html
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"  content="width=device-width, initial-scale=1.0">
+  <title>Mobile 0.5px Border Examples</title>
+  <style>
+    /* 17.5.1 （其实都可以区分）*/
+    /* 方法1: 直接绘制 （完美）*/
+    canvas {
+      display: block;
+      margin: 10px auto;
+      border: 0.5px solid #ccc;
+    }
+
+    /* 方法2: border-image *，苹果不显示*/
+
+    .border-image-example {
+      width: 200px;
+      height: 100px;
+      border: .5px solid;
+      border-image: linear-gradient(to right, black, black 50%, black 50%) .5;
+      margin: 10px auto;
+    }
+
+    /* 方法3: background-image（都不均匀） */
+    .background-image-example {
+      width: 200px;
+      height: 100px;
+      background-image:
+        linear-gradient(to right, black, black 50%, black 50%),
+        /* top */
+        linear-gradient(to left, black, black 50%, black 50%),
+        /* bottom */
+        linear-gradient(to bottom, black, black 50%, black 50%),
+        /* left */
+        linear-gradient(to top, black, black 50%, black 50%);
+      /* right */
+      ;
+      background-size: 100% 0.5px, 100% 0.5px, 0.5px 100%, 0.5px 100%;
+      /* 注意这里的背景大小 */
+      background-repeat: no-repeat;
+      background-position: top, bottom, left, right;
+      margin: 10px auto;
+    }
+
+    /* 方法4: box-shadow（苹果并不均匀） */
+    .box-shadow-example {
+      width: 200px;
+      height: 100px;
+      margin: 10px auto;
+      position: relative;
+      box-shadow:
+        inset 0 0 0 0.5px black,
+        /* top border */
+        inset 0 0 0 0.5px black,
+        /* bottom border */
+        inset -0.5px 0 0 0 black,
+        /* left border */
+        inset 0.5px 0 0 0 black;
+      /* right border */
+    }
+
+    /* 方法5: SVG（完美） */
+    .svg-example {
+      width: 200px;
+      height: 100px;
+      margin: 10px auto;
+    }
+
+    .svg-example rect {
+      stroke: black;
+      stroke-width: 0.5;
+      fill: none;
+    }
+
+    /* 方法6: transform （完美）*/
+    .transform-example {
+      position: relative;
+      width: 200px;
+      height: 100px;
+      margin: 10px auto;
+    }
+
+    .transform-example::before,
+    .transform-example::after {
+      content: '';
+      position: absolute;
+      background-color: black;
+    }
+
+    /* Top border */
+    .transform-example::before {
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 1px;
+      transform: scaleY(0.5);
+      transform-origin: top;
+    }
+
+    /* Bottom border */
+    .transform-example::after {
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 1px;
+      transform: scaleY(0.5);
+      transform-origin: bottom;
+    }
+
+    /* Left border */
+    .transform-example .border-left {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 1px;
+      height: 100%;
+      background-color: black;
+      transform: scaleX(0.5);
+      transform-origin: left;
+    }
+
+    /* Right border */
+    .transform-example .border-right {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 1px;
+      height: 100%;
+      background-color: black;
+      transform: scaleX(0.5);
+      transform-origin: right;
+    }
+
+    /* 方法7: 调整viewport（都不均匀，而且没试出来，因为加载时就能区分了） */
+    .viewport-adjust-example {
+      width: 200px;
+      height: 100px;
+      margin: 10px auto;
+      position: relative;
+      background-color: #f0f0f0;
+    }
+
+    .viewport-adjust-example::before,
+    .viewport-adjust-example::after,
+    .border-left,
+    .border-right {
+      content: '';
+      position: absolute;
+      background-color: black;
+    }
+
+    .viewport-adjust-example::before,
+    .viewport-adjust-example::after {
+      width: 100%;
+      height: 0.5px;
+      background-color: black;
+    }
+
+    /* Top border */
+    .viewport-adjust-example::before {
+      top: 0;
+      /* transform: scaleY(0.5);
+    transform-origin: top; */
+    }
+
+    /* Bottom border */
+    .viewport-adjust-example::after {
+      bottom: 0;
+      /* transform: scaleY(0.5);
+    transform-origin: bottom; */
+    }
+
+    /* Left border */
+    .border-left {
+      top: 0;
+      left: 0;
+      width: 0.5px;
+      height: 100%;
+      /* transform: scaleX(0.5);
+    transform-origin: left; */
+    }
+
+    /* Right border */
+    .border-right {
+      top: 0;
+      right: 0;
+      width: 0.5px;
+      height: 100%;
+      /* transform: scaleX(0.5);
+    transform-origin: right; */
+    }
+
+/* 对比，1px */
+.viewport-adjust-example1 {
+      width: 200px;
+      height: 100px;
+      margin: 10px auto;
+      position: relative;
+      background-color: #f0f0f0;
+    }
+
+    .viewport-adjust-example1::before,
+    .viewport-adjust-example1::after,
+    .border-left1,
+    .border-right1 {
+      content: '';
+      position: absolute;
+      background-color: black;
+    }
+
+    .viewport-adjust-example1::before,
+    .viewport-adjust-example1::after {
+      width: 100%;
+      height: 1px;
+      background-color: black;
+    }
+
+    /* Top border */
+    .viewport-adjust-example1::before {
+      top: 0;
+      /* transform: scaleY(0.5);
+    transform-origin: top; */
+    }
+
+    /* Bottom border */
+    .viewport-adjust-example1::after {
+      bottom: 0;
+      /* transform: scaleY(0.5);
+    transform-origin: bottom; */
+    }
+
+    /* Left border */
+    .border-left1 {
+      top: 0;
+      left: 0;
+      width: 1px;
+      height: 100%;
+      /* transform: scaleX(0.5);
+    transform-origin: left; */
+    }
+
+    /* Right border */
+    .border-right1 {
+      top: 0;
+      right: 0;
+      width: 1px;
+      height: 100%;
+      /* transform: scaleX(0.5);
+    transform-origin: right; */
+    }
+
+
+
+    .hr {
+      width: 300px;
+      background-color: #000;
+    }
+
+    .hr.half-px {
+      height: 0.5px;
+    }
+
+    .hr.one-px {
+      height: 1px;
+    }
+  </style>
+</head>
+
+<body>
+  <p>0.5px</p>
+  <div class="hr half-px"></div>
+  <p>1px</p>
+  <div class="hr one-px"></div>
+  <!-- 方法1: 直接绘制 -->
+  <canvas id="canvasExample" width="200" height="100"></canvas>
+
+  <!-- 方法2: border-image -->
+  <div class="border-image-example"></div>
+
+  <!-- 方法3: background-image -->
+  <div class="background-image-example"></div>
+
+  <!-- 方法4: box-shadow -->
+  <div class="box-shadow-example"></div>
+
+  <!-- 方法5: SVG -->
+  <svg class="svg-example" viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg">
+    <rect x="0" y="0" width="200" height="100" fill="none" stroke="black" stroke-width="0.5" />
+  </svg>
+
+  <!-- 方法6: transform -->
+  <div class="transform-example">
+    <!-- Left Border -->
+    <div class="border-left"></div>
+    <!-- Right Border -->
+    <div class="border-right"></div>
+  </div>
+
+  <!-- 方法7: 调整viewport -->
+
+
+  <div class="viewport-adjust-example">
+    <div class="border-left"></div>
+    <div class="border-right"></div>
+  </div>
+  <!-- 下面这个作为对比 -->
+  <div class="viewport-adjust-example1">
+    <div class="border-left1"></div>
+    <div class="border-right1"></div>
+  </div>
+  <button onclick="setScale()" id="button">Scale </button>
+
+  <script>
+    // 方法1: 直接绘制
+    const canvas = document.getElementById('canvasExample');
+    const ctx = canvas.getContext('2d');
+    ctx.beginPath();
+    ctx.moveTo(50, 50);
+    ctx.lineTo(200, 50);
+    ctx.strokeStyle = 'black';
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+
+
+    function setScale() {
+      var dpr = window.devicePixelRatio; // 2
+
+      document.getElementById("button").innerText = dpr
+      console.log(dpr, 'dpr+++');
+      //比例              // 0.5
+      var scale = 1 / dpr;
+      var width = document.documentElement.clientWidth; //375
+      //3.通过dpr让元素进行缩放，initial-scale=0.5
+      var metaNode = document.querySelector('meta[name="viewport"]');
+      metaNode.setAttribute(
+        'content',
+        'width=device-width,initial-scale=' + scale + ','
+      );
+
+
+    }
+  </script>
+</body>
+
+</html>
+
+```
+
+
+参考：
+- [怎么画一条0.5px的边（更新）](https://zhuanlan.zhihu.com/p/34908005)
+- [7 种方案解决移动端1px边框的问题](https://juejin.cn/post/7372765277459857418?searchId=202408022220554CA42CA194253ECFF043#heading-8)
