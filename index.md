@@ -2827,15 +2827,52 @@ vue2部分我主要是看染陌同学一个开源的框架结合尚硅谷视频�
 - `serverPrefetch`（服务端渲染）
 
 
-# webpack 原理实现（占坑
+# webpack4 打包原理
+ ## 下面的是视频里的讲解思路总结
+ - 打包的本质就是将多个js文件合并成一个入口，引入一个自执行函数，每个模块都是通过传参进入。然后函数体里面就只有两件事，一是定义一个require函数（函数内部是会递归执行的），另一个是执行require(0)
+ - 合并后有两个问题，一个是如何处理import 语法，另一个是如何解决变量冲突，
+ - 针对第一个问题，需要将es 模块 转换成 cjs（工具从AST 树上进行替换和处理） 然后我们自己实现一个require函数，其的本质就是执行传入对应路径模块的函数而已。
+ - 针对第二个问题，需要将每个模块变成一个函数，这样就不会引起变量冲突。这时又有新的问题，函数名是什么，不然没办法执行。这时可以以当前的文件路径作为key,函数体作为value。这时还有问题，如果使用相对路径可能会有重复的问题，这时解决方案就是key改为序号，然后传入的fn后附加一个mapping,mapping 里面包含的了所依赖模块的id值(这一步会在构建依赖图时进行mapping 的id绑定)
 参考：
 - [手摸手带你实现打包器 仅需 80 行代码理解 webpack 的核心](https://www.bilibili.com/video/BV1oL411V7BQ/?spm_id_from=333.999.0.0&vd_source=dbd4e06376cfe7144e0331f427521399)
+
 # vuex 原理实现（占坑
 - 参考[1.1.4 vuex原理源码实现](https://www.bilibili.com/video/BV12k4y1C7mq/?spm_id_from=333.999.0.0&vd_source=dbd4e06376cfe7144e0331f427521399)
 # vue-router 原理实现（占坑
 - 参考[1.1.3一步一步带你弄懂vue-router核心原理及实现](https://www.bilibili.com/video/BV14y4y1C7F2/?spm_id_from=333.999.0.0&vd_source=dbd4e06376cfe7144e0331f427521399)
 
+# vue-router守卫流程
+
+- 导航被触发。
+
+- 在失活的组件里调用 beforeRouteLeave 守卫。
+- 调用全局的 beforeEach 守卫。
+- 在重用的组件里调用 beforeRouteUpdate 守卫(2.2+)。
+- 在路由配置里调用 beforeEnter。
+- 解析异步路由组件。
+- 在被激活的组件里调用 beforeRouteEnter。
+- 调用全局的 beforeResolve 守卫(2.5+)。
+- 导航被确认。
+- 调用全局的 afterEach 钩子。
+- 触发 DOM 更新。
+- 调用 beforeRouteEnter 守卫中传给 next 的回调函数，创建好的组件实例会作为回调函数的参数传入。
 
 
+# BFC规则理解
+- 内部的 Box 会在垂直方向一个接着一个地放置（对内）
+
+- Box 垂直方向上的距离由 margin 决定。属于同一个 BFC 的两个相邻的 Box 的 margin 会发生重叠（对内，所以包裹一个BFC块可以让margin不重叠）
+
+
+- 每个盒子的左外边框紧挨着包含块的左边框，即使浮动元素也是如此（对内）
+
+
+- BFC 的区域不会与浮动 Box 重叠（对外，所以让不浮动的元素开启BFC就能防止被覆盖）
+
+
+- BFC 就是页面上的一个隔离的独立容器，容器里面的子元素不会影响到外面的元素，反之亦然
+
+
+- 计算 BFC 的高度时，浮动子元素也参与计算（对内，清楚浮动原理依据）
 
 

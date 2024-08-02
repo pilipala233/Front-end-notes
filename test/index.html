@@ -2,19 +2,85 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SharedArrayBuffer Example</title>
+  <title>Vue Animation Example</title>
+  <style>
+    .fade-enter-active, .fade-leave-active {
+      transition: opacity 0.5s ease;
+    }
+    .fade-enter, .fade-leave-to {
+      opacity: 0;
+    }
+    .box {
+      width: 100px;
+      height: 100px;
+      background-color: #42b983;
+      margin: 10px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+    }
+    .box.no-animation {
+      transition: none;
+    }
+  </style>
 </head>
 <body>
-  <button onclick="startWorker()">Start Worker</button>
+  <div id="app">
+    <button @click="toggleAnimatedBox">Toggle Animated Box</button>
+    <div v-if="showAnimatedBox" ref="animatedBox" class="box">
+      Animated Box
+    </div>
+    <button @click="toggleStaticBox">Toggle Static Box</button>
+    <div v-if="showStaticBox" class="box no-animation">
+      Static Box
+    </div>
+  </div>
+
+  <!-- Vue.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
   <script>
-    function startWorker() {
-      const worker = new Worker('worker.js');
-      worker.onmessage = function(event) {
-        console.log('Received message from worker:', event.data);
-      };
-      worker.postMessage('start');
-    }
+    new Vue({
+      el: '#app',
+      data() {
+        return {
+          showAnimatedBox: true,
+          showStaticBox: true
+        };
+      },
+      methods: {
+        toggleAnimatedBox() {
+          this.showAnimatedBox = !this.showAnimatedBox;
+        },
+        toggleStaticBox() {
+          this.showStaticBox = !this.showStaticBox;
+        }
+      },
+      watch: {
+        showAnimatedBox(newVal, oldVal) {
+          if (newVal) {
+            this.$nextTick(() => {
+              const el = this.$refs.animatedBox;
+              el.classList.add('fade-enter');
+              requestAnimationFrame(() => {
+                el.classList.add('fade-enter-active');
+                el.classList.remove('fade-enter');
+              });
+            });
+          } else {
+            const el = this.$refs.animatedBox;
+            el.classList.add('fade-leave-active');
+            requestAnimationFrame(() => {
+              el.classList.add('fade-leave-to');
+            });
+            setTimeout(() => {
+              el.classList.remove('fade-leave-active');
+              el.classList.remove('fade-leave-to');
+            }, 500);
+          }
+        }
+      }
+    });
   </script>
 </body>
 </html>
