@@ -2900,24 +2900,140 @@ Vite 在开发模式下表现出比 Webpack 更快的性能，主要是因为它
 - 调用 beforeRouteEnter 守卫中传给 next 的回调函数，创建好的组件实例会作为回调函数的参数传入。
 
 
-# BFC规则理解
-- 内部的 Box 会在垂直方向一个接着一个地放置（对内）
+# BFC
+## 规则理解
+1. 内部的 Box 会在垂直方向一个接着一个地放置（对内）
 
-- Box 垂直方向上的距离由 margin 决定。属于同一个 BFC 的两个相邻的 Box 的 margin 会发生重叠（对内，所以包裹一个BFC块可以让margin不重叠）
-
-
-- 每个盒子的左外边框紧挨着包含块的左边框，即使浮动元素也是如此（对内）
+2. Box 垂直方向上的距离由 margin 决定。属于同一个 BFC 的两个相邻的 Box 的 margin 会发生重叠（对内，所以包裹一个BFC块可以让margin不重叠）
 
 
-- BFC 的区域不会与浮动 Box 重叠（对外，所以让不浮动的元素开启BFC就能防止被覆盖）
+3. 每个盒子的左外边框紧挨着包含块的左边框，即使浮动元素也是如此（对内）
 
 
-- BFC 就是页面上的一个隔离的独立容器，容器里面的子元素不会影响到外面的元素，反之亦然
+4. BFC 的区域不会与浮动 Box 重叠（对外，所以让不浮动的元素开启BFC就能防止被覆盖）
 
 
-- 计算 BFC 的高度时，浮动子元素也参与计算（对内，清楚浮动原理依据）
+5. BFC 就是页面上的一个隔离的独立容器，容器里面的子元素不会影响到外面的元素，反之亦然
 
- 
+
+6. 计算 BFC 的高度时，浮动子元素也参与计算（对内，清楚浮动原理依据）
+
+
+## 如何开启
+| 元素或属性 | 属性值 |
+| -------- | ------ |
+| 根元素    |        |
+| `float`   | `left`, `right` |
+| `position`| `absolute`, `fixed` |
+| `overflow`| `auto`, `scroll`, `hidden` |
+| `display` | `inline-block`, `table-cell` |
+
+上面只记录了一些常见的方式，完整的 BFC 触发方式可以参阅：  
+[MDN - Block formatting context](https://developer.mozilla.org/zh-CN/docs/Web/Guide/CSS/Block_formatting_context)
+## 清除浮动，解决父元素高度塌陷问题（对应规则的第六点）
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Height Collapse Solution</title>
+    <style>
+        .container {
+            border: 1px solid black;
+            overflow: hidden; /* 触发 BFC */
+        }
+        .float-child {
+            float: left;
+            width: 100px;
+            height: 100px;
+            background: red;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="float-child"></div>
+    </div>
+</body>
+</html>
+
+```
+## 处理被浮动元素覆盖问题，完成两列布局（对应规则的第四点）
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Overlap Solution</title>
+    <style>
+        .container {
+            border: 1px solid black;
+        }
+        .float-child {
+            float: left;
+            width: 100px;
+            height: 50px;
+            background: red;
+        }
+        .non-float-child {
+            height: 50px;
+            width: 50px;
+            background: blue;
+            overflow: hidden; /* 触发 BFC */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="float-child"></div>
+        <div class="non-float-child"></div>
+    </div>
+</body>
+</html>
+
+```
+## 外边距重叠问问题（对应规则的第二点）
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Margin Collapse Solution</title>
+    <style>
+        .wrapper {
+            overflow: hidden; /* 触发 BFC */
+        }
+        .element1 {
+            margin-bottom: 20px;
+            background: red;
+            height: 50px;
+        }
+        .element2 {
+            margin-top: 20px;
+            background: blue;
+            height: 50px;
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <div class="element1"></div>
+        <div style="overflow: hidden">
+          <div class="element2"></div>
+        </div>
+        
+    </div>
+</body>
+</html>
+
+```
+## 拓展
+- **BFC**: 块级格式上下文，指的是一个独立的布局环境，BFC 内部的元素布局与外部互不影响。
+- **IFC**: 行内格式化上下文，将一块区域以行内元素的形式来格式化。
+- **GFC**: 网格布局格式化上下文，将一块区域以 `grid` 网格的形式来格式化。
+- **FFC**: 弹性格式化上下文，将一块区域以弹性盒子的形式来格式化。
+
+
 # DOMContentLoaded 与 load 以及document.onreadystatechange事件
 - DOMContentLoaded 事件在 HTML 文档完全解析并且所有延迟脚本（如 ```<script defer>``` 和 ```<script type="module">```）下载和执行完毕后触发
 - load 事件在整个页面（包括图片、样式表、子框架等所有资源）加载完成后触发
@@ -3416,3 +3532,253 @@ html5不是基于SGML所以不需要DTD，没有DTD自然就没有所谓的严�
 参考：
 - [怎么画一条0.5px的边（更新）](https://zhuanlan.zhihu.com/p/34908005)
 - [7 种方案解决移动端1px边框的问题](https://juejin.cn/post/7372765277459857418?searchId=202408022220554CA42CA194253ECFF043#heading-8)
+
+
+# 清除浮动办法
+这里主要是结合渡一视频里面的例子和方法
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        li {
+            width: 100px;
+            height: 20px;
+            background-color: pink;
+            float: left;
+        }
+    </style>
+</head>
+<body>
+    <ul>
+        <li>导航1</li>
+        <li>导航2</li>
+        <li>导航3</li>
+    </ul>
+    <ul>
+      <li>导航3</li>
+      <li>导航4</li>
+      <li>导航5</li>
+  </ul>
+</body>
+</html>
+
+```
+- 父元素给高度(高度一定要大于子元素)
+
+- 单纯的clear 属性（但是margin会失效）
+
+- 隔墙法（就是中间加个元素,然后应用clear。这样就能处理目标元素margin属性）
+- 内墙法（把中间属性放到目标元素底部，没这么突兀，看起来会舒服点而已）
+- BFC方法（比如ul设置overflow）
+
+- 伪类清楚法（内墙的最终进化版）
+```css
+.clearfix:after {
+    display: table;
+    content: " ";
+    clear: both;
+}
+
+// 全浏览器通用的clearfix方案【推荐】
+// 引入了zoom以支持IE6/7
+// 同时加入:before以解决现代浏览器上边距折叠的问题
+.clearfix:before,
+.clearfix:after {
+    display: table;
+    content: " ";
+}
+.clearfix:after {
+    clear: both;
+}
+.clearfix{
+    *zoom: 1;
+}
+```
+
+## 补充
+IE6/7不支持BFC，也不支持:after，所以IE6/7清除浮动要靠触发hasLayout,
+- 在 IE6 和 IE7 中，给元素设置 zoom: 1 可以触发 hasLayout。
+```css
+.clearfix{
+    *zoom: 1;
+}
+```
+- 设置元素的 width 或 height 属性也可以触发 hasLayout()。
+- 设置元素的 overflow 属性为 hidden 或 auto 也可以触发 hasLayout。
+
+## 水平居中/垂直居中/垂直水平居中（todo）
+
+参考：
+- [干货!各种常见布局实现+知名网站实例分析](https://juejin.cn/post/6844903574929932301#heading-0)
+## css文件如何确定字符编码
+- 文件的开头的 Unicode byte-order 字符值。
+- 由 Content-Type：HTTP header 中的 charset 属性给出的值或用于提供样式表的协议中的等效值。
+- CSS @规则 @charset。
+- 使用参考文档定义的字符编码：<link> 元素的 charset 属性。该方法在 HTML5 标准中已废除，无法使用。
+- 假设文档是 UTF-8。
+参考：
+- [MDN](https://developer.mozilla.org/zh-CN/docs/Web/CSS/@charset)
+
+# 层叠上下文
+## 层叠上下文、层叠等级与层叠顺序
+- 层叠上下文就类似与普通元素得到了升官的机会，高人一等
+- 层叠等级就是升官后的权利大小
+- 层叠上下文和层叠水平是概念，而这里的层叠顺序是规则，体现了层叠上下文中如何计算层叠等级
+
+
+## 如何成为层叠上下文
+
+- HTML 中的根元素 HTML 本身就具有层叠上下文，称为“根层叠上下文”
+- 普通元素设置 position 属性为非 static 值并设置 z-index 属性为具体数值，会产生层叠上下文
+- CSS3 中的新属性也可以产生层叠上下文
+  - position 值为 fixed（固定定位）或 sticky（粘滞定位）的元素（沾滞定位适配所有移动设备上的浏览器，但老的桌面浏览器不支持）；
+  - flex (flex) 容器的子元素，且 z-index 值不为 auto；
+  - grid (grid) 容器的子元素，且 z-index 值不为 auto；
+  - opacity 属性值小于 1 的元素（参见 the specification for opacity）；
+  - mix-blend-mode 属性值不为 normal 的元素；
+  - 以下任意属性值不为 none 的元素：
+    - transform
+    - filter
+    - backdrop-filter
+    - perspective
+    - clip-path
+    - mask / mask-image / mask-border
+  - isolation 属性值为 isolate 的元素；
+  - will-change 值设定了任一属性而该属性在 non-initial 值时会创建层叠上下文的元素（参考这篇文章）；
+  - contain 属性值为 layout、paint 或包含它们其中之一的合成值（比如 contain: strict、contain: content）的元素。
+## 如何计算层叠等级
+<img src="./pic/层叠顺序.png">
+1.首先先看要比较的两个元素是否处于同一个层叠上下文中:
+
+  如果是，谁的层叠等级大，谁在上面(判断层叠等级大小参阅上面的“层叠顺序“图)。
+
+  如果两个元素不在同一层叠上下文中，请先比较他们所处的层叠上下文的层叠等级。
+
+2.当两个元素层叠等级相同、层叠顺序相同时，在 DOM 结构中后面的元素层叠等级在前面元素之上。
+### 举例
+```html
+<div style="position:relative; z-index:auto;">
+    <img src="mm1.jpg" style="position:absolute; z-index:2;">    <-- 横妹子 -->
+</div>
+<div style="position:relative; z-index:auto;">
+    <img src="mm2.jpg" style="position:relative; z-index:1;">    <-- 竖妹子 -->
+</div>
+```
+1. 不要看比较元素本身，而是看他们处于哪个层叠上下文。
+2. img看他们看父元素 ,父元素都只是个普通元素，所以img 都处于html的层叠上下文.
+3. 这时由于都是同一个上下文，按照层叠顺序表进行对比，z-index大的覆盖小的
+
+```html
+
+<div style="position:relative; z-index:0;">
+    <img src="mm1.jpg" style="position:absolute; z-index:2;">    <-- 横妹子 -->
+</div>
+<div style="position:relative; z-index:0;">
+    <img src="mm2.jpg" style="position:relative; z-index:1;">    <-- 竖妹子 -->
+</div>
+```
+1. 不要看比较元素本身，而是看他们处于哪个层叠上下文。
+2. img看他们看父元素 ,父元素来自不同层叠上下文，比较其父级层叠上下文元素的层叠顺序.
+3. 由于其父级层叠上下文元素的层叠顺序一样，所以DOM结构在后面的覆盖前面的
+
+
+参考：
+- [深入理解CSS中的层叠上下文和层叠顺序](https://www.zhangxinxu.com/wordpress/2016/01/understand-css-stacking-context-order-z-index/)
+
+# 定义核心网页指标阈值(TODO)
+参考：
+- [定义核心网页指标阈值](https://web.dev/articles/defining-core-web-vitals-thresholds?hl=zh-cn)
+
+参考：
+- [你了解你的前端页面性能吗-LCP](https://juejin.cn/post/7385025044730150951?searchId=2024080315312319A6E1A32C40758E0E22#heading-9)
+
+
+
+
+# fetchpriority 属性（TODO）
+- 兼容性目前问题不大了
+- 主要还是拿来针对图片的场景比较多
+- Fetch Priority API 用于向浏览器指示资源的相对优先级。可以通过向 ```<img>```、```<link>```、```<script>``` 和 ```<iframe>``` 元素添加 fetchpriority 属性或通过 ```Fetch API ```上的 priority 属性来配置优先级。
+
+<img src="./pic/资源加载优先级.png" >
+
+early 和later 那个还没看懂(晚点问一下gpt4)
+
+- [浏览器之资源获取优先级(fetchpriority)(说实话朋友，没有浏览量无非就是你写的东西太像机翻了)](https://juejin.cn/post/7251181090395275323)
+- [mdn](https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement/fetchPriority)
+- [聊聊Web网页中资源加载的优先级](https://www.zhangxinxu.com/wordpress/2023/10/img-js-preload-fetch-priority/)
+- [“web资源加载优先级”原来能这么精准控制](https://mp.weixin.qq.com/s?__biz=MzkzMjIxNTcyMA==&mid=2247489311&idx=1&sn=2b32aae5c0d4a3041f3cb7141db64d4d&scene=21#wechat_redirect)
+- [油管、BBC 都在用的优化技术：fetchPriority](https://juejin.cn/post/7268070933893005370?searchId=20240803151737EDDA3C12694183889224)
+- [Chrome Resource Priorities and Scheduling](https://docs.google.com/document/d/1bCDuq9H1ih9iNjgzyAL0gpwNFiEP4TZS-YLRp_RuMlc/edit?pli=1)
+
+# css 的经典布局(TODO)
+
+# CSS的值
+- 初始值：默认值，分继承和非继承
+- 计算值：通常包括将相对值转换成绝对值 (如 em 单位或百分比)。然而，对于有些属性 (这些元素的百分比与需要布局确定后才能知道的值有关，如 width, margin-right, text-indent, 和 top)，它们的“百分比值”会转换成“百分比的计算值”。另外，line-height 属性值如是没有单位的数字，则该值就是其计算值。这些计算值中的相对值会在 应用值 确定后转换成绝对值。
+- 解析值：是 getComputedStyle()返回的值。对于大多数属性，它是计算值computed value，但对于一些旧属性（包括宽度和高度），它是使用值used value（这一步感觉是没有参与运算的，只是getComputedStyle返回值的解释）
+- 指定值：开发没指定就该继承继承该默认就默认
+- 应用值：计算布局 (尺寸比如 auto 或 百分数 换算为像素值 )，完成所有计算后最终使用的值
+- 实际值：一个 CSS 属性的实际值（actual value）是应用值（used value）被应用后的近似值。例如，一个用户代理可能只能渲染一个整数像素值的边框（实际值），并且该值可能被强制近似于边框的计算宽度值。
+
+## 应用值与计算值的区别
+CSS 2.0 只定义了 计算值 computed value 作为属性计算的最后一步。CSS 2.1 引进了定义明显不同的应用值，这样当父元素的计算值为百分数时子元素可以显式地继承其高宽。对于不依赖于布局的 CSS 属性 (例如 display, font-size, line-height) 计算值与应用值一样，否则就会不一样 (引自 CSS 2.1 Changes: Specified, computed, and actual values):
+
+- background-position
+- bottom, left, right, top
+- height, width
+- margin-bottom, margin-left, margin-right, margin-top,
+- min-height, min-width
+- padding-bottom, padding-left, padding-right, padding-top
+- text-indent
+
+参考：
+- [MDN](https://developer.mozilla.org/zh-CN/docs/Web/CSS/computed_value)
+
+# position 的值 定位原点是？
+
+- absolute
+
+生成绝对定位的元素，相对于值不为static的第一个父元素的padding box进行定位，也可以理解为离自己这一级元素最近的
+一级position设置为absolute或者relative的父元素的padding box的左上角为原点的(所以两个嵌套的div，position都是absolute，子div设置top属性，那么这个top是相对于父元素的border内侧定位的。)。
+
+- fixed（老IE不支持）
+
+生成绝对定位的元素，相对于浏览器窗口进行定位。
+
+- relative
+
+生成相对定位的元素，相对于其元素本身所在正常位置进行定位。
+
+- static
+
+默认值。没有定位，元素出现在正常的流中（忽略top,bottom,left,right,z-index声明）。
+
+- inherit
+
+规定从父元素继承position属性的值。
+
+- sticky
+
+>元素根据正常文档流进行定位，然后相对它的最近滚动祖先（nearest scrolling ancestor）和 containing block（最近块级祖先 nearest block-level ancestor），包括 table-related 元素，基于 top、right、bottom 和 left 的值进行偏移。偏移值不会影响任何其他元素的位置。 该值总是创建一个新的层叠上下文（stacking context）。注意，一个 sticky 元素会“固定”在离它最近的一个拥有“滚动机制”的祖先上（当该祖先的 overflow 是 hidden、scroll、auto 或 overlay 时），即便这个祖先不是最近的真实可滚动祖先
+为什么块元素有关，因为父元素要求是块，不然没有高度，这时就会一层一层找。
+
+
+
+参开：
+-[MDN](https://developer.mozilla.org/zh-CN/docs/Web/CSS/position)
+-[杀了个回马枪，还是说说position:sticky吧](https://www.zhangxinxu.com/wordpress/2018/12/css-position-sticky/)
+-[深入理解position sticky粘性定位的计算规则](https://juejin.cn/post/6923866099981893639?searchId=2024080320143862DF5C77C4F8B0AF1310)
+-[前端】position:sticky解析 这次应该大结局了](https://juejin.cn/post/6923866099981893639?searchId=2024080320143862DF5C77C4F8B0AF1310)
+
+# all 选择器
+将除unicode-bidi 与 direction 之外的所有属性重设至其初始值或继承值（这两个属性是拿来设置文字展示顺序相关）
