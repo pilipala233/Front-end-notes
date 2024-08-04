@@ -3782,3 +3782,289 @@ CSS 2.0 只定义了 计算值 computed value 作为属性计算的最后一步�
 
 # all 选择器
 将除unicode-bidi 与 direction 之外的所有属性重设至其初始值或继承值（这两个属性是拿来设置文字展示顺序相关）
+
+# flex 布局
+- 设为 Flex 布局以后，子元素的float、clear和vertical-align属性将失效。
+- 主轴和交叉轴
+<img src="./pic/flex布局.png">
+
+## 容器属性
+- flex-direction：主轴方向，默认从左到右边。需要注意wrap-reverse的排列如下
+
+- flex-wrap：如果一条轴线排不下，如何换行。需要注意wrap-reverse的排列如下
+<img src="./pic/flex-wrap-reverse.png">
+
+- flex-flow：上面两个的简写
+- justify-content： 项目在主轴上的对齐方式
+- align-items：项目在交叉轴上的对齐方式
+- align-content：定义了多根轴线的对齐方式，也就是该属性对单行弹性盒子模型无效。（即：带有 flex-wrap: nowrap）。
+
+## 项目的属性
+- order：定义项目的排列顺序。数值越小，排列越靠前，默认为0
+- flex-grow：定义项目的放大比例，默认为0，即如果存在剩余空间，也不放大；为1那就等分剩余空间；一个为1一个为2，那就按比例分配剩余空间。
+- flex-shrink：定义了项目的缩小比例，默认为1，即如果空间不足，该项目将缩小。
+- flex-basis：定义了在分配多余空间之前，项目占据的主轴空间。浏览器根据这个属性，计算主轴是否有多余空间。它的默认值为auto，即项目的本来大小
+  - 属性值可以设置一个关键词 content 或者 <'width'>
+  - content:由于最初规范中没有包括这个值，在一些早期的浏览器实现的 flex 布局中，content 值无效，可以利用设置 (width 或 height) 为 auto 达到同样的效果
+  - <'width'>:值可以是 <length>; 该值也可以是一个相对于其父弹性盒容器主轴尺寸的百分数 。负值是不被允许的。默认为 auto。(百分数这里很关键，和很多参考文章都不一样，以MDN这个说法为准，下面的例子会有所体现)
+
+- flex：flex属性是flex-grow, flex-shrink 和 flex-basis的简写，默认值为0 1 auto。后两个属性可选。（也就是项目占据本来大小，有剩余空间不放大，空间不够就等比缩小）。有两个快捷值：auto (1 1 auto) 和 none (0 0 auto)。分别代表```项目占据本来大小，弹性缩放和放大```以及```项目占据本来大小，永远不弹性缩放和放大```
+- align-self：align-self属性允许单个项目有与其他项目不一样的对齐方式，可覆盖align-items属性。默认值为auto，表示继承父元素的align-items属性，如果没有父元素，则等同于stretch（align-items默认值）。
+
+
+## 常见问题
+### flex：1 与auto的区别
+flex为1，其实就是（1，1，0%），所以有剩余空间时都能展开，和auto的区别就在于最后一项flex-basis，为父元素的0%（不管父元素是不是靠子元素撑开的）。他们的分配剩余空间时或者需要压缩时，计算方式不一样。（下面的例子可以把父元素的height去掉试一试）
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sticky Position Example</title>
+
+</head>
+<body>
+  <div class="parent">
+    <div class="item-1"></div>
+    <div class="item-2"></div>
+    <div class="item-3"></div>
+</div>
+
+<style type="text/css">
+    .parent {
+        display: flex;
+        width: 600px;
+    }
+    .parent > div {
+        height: 100px;
+    }
+    .item-1 {
+        width: 140px;
+        flex: 2 1 0%;
+        background: blue;
+    }
+    .item-2 {
+        width: 100px;
+        flex: 2 1 auto;
+        background: darkblue;
+    }
+    .item-3 {
+        flex: 1 1 200px;
+        background: lightblue;
+    }
+</style>
+
+</body>
+</html>
+
+```
+参考：
+- [flex设置成1和auto有什么区别(百分比那里是错误的，以MDN为准)](https://segmentfault.com/q/1010000004080910)
+- [Flex 布局教程：语法篇](https://www.ruanyifeng.com/blog/2015/07/flex-grammar.html)
+- [Flex 布局教程：实例篇](https://www.ruanyifeng.com/blog/2015/07/flex-examples.html)
+- [MDN](https://developer.mozilla.org/zh-CN/docs/Web/CSS/flex-basis)
+
+
+# grid布局
+- 设为网格布局以后，容器子元素（项目）的float、display: inline-block、display: table-cell、vertical-align和column-*等设置都将失效。
+## 与flex布局的区别
+Flex 布局是轴线布局，只能指定"项目"针对轴线的位置，可以看作是一维布局。Grid 布局则是将容器划分成"行"和"列"，产生单元格，然后指定"项目所在"的单元格，可以看作是二维布局。Grid 布局远比 Flex 布局强大。
+
+
+## 容器属性（33个相关概念）
+
+### display 属性
+- `inline-grid` 与 `grid` 的区别：容器是行内盒还是块盒。
+
+### grid-template-columns 属性,grid-template-rows 属性
+- 用于指定列数，可以使用绝对单位、百分比或关键字。
+```css
+.wrapper {
+  display: grid;
+  grid-template-columns: 70% 30%;
+}
+
+.container {
+  display: grid;
+  grid-template-columns: 100px 100px 100px;
+  grid-template-rows: 100px 100px 100px;
+}
+```
+#### repeat() 函数
+- 指定重复列数：
+  ```css
+  grid-template-columns: repeat(3, 33.33%);
+  ```
+- 指定多列宽度：
+  ```css
+  grid-template-columns: repeat(2, 100px 20px 80px);
+  ```
+  (定义了6列，第一列和第四列的宽度为100px，第二列和第五列为20px，第三列和第六列为80px)
+- 自动填充列：
+  ```css
+  grid-template-columns: repeat(auto-fill, 100px);
+  ```
+  (每列宽度100px，自动填充，直到容器不能放置更多的列)
+
+#### auto-fill 关键字
+- 参考上面的例子。
+
+#### auto-fit 关键字
+- 和 `auto-fill` 行为基本相同。当容器足够宽，可以在一行容纳所有单元格，并且单元格宽度不固定时，`auto-fill` 会用空格子填满剩余宽度，`auto-fit` 则会尽量扩大单元格的宽度。
+
+  示例代码：
+  ```html
+  <!DOCTYPE html>
+  <html lang="en">
+
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Document</title>
+      <style>
+          body {
+              margin: 0;
+              padding: 0;
+          }
+
+          .grid {
+              display: grid;
+              grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+              /* grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); */
+          }
+
+          .grid div {
+              width: 100%;
+              height: 100px;
+              box-sizing: border-box;
+              border: 1px solid red;
+              background-color: aquamarine;
+              display: grid;
+              place-items: center center;
+          }
+      </style>
+  </head>
+
+  <body>
+      <div class="grid">
+          <div>box</div>
+      </div>
+  </body>
+
+  </html>
+  ```
+
+#### fr 关键字
+- 指定相同宽度的列：
+  ```css
+  grid-template-columns: 1fr 1fr;
+  ```
+- 按比例分配剩余空间：
+  ```css
+  grid-template-columns: 150px 1fr 2fr;
+  ```
+  (第一列的宽度为150px，剩余空间内，第二列的宽度是第三列的一半)
+
+#### minmax() 函数
+- 指定长度范围，接受最小值和最大值：
+  ```css
+  grid-template-columns: 1fr 1fr minmax(100px, 1fr);
+  ```
+  (表示列宽不小于100px，不大于1fr)
+
+#### auto 关键字
+- 用于自动调整列宽,但是项目本身的min-width 和 max-width 会有影响
+```css
+grid-template-columns: 100px auto 100px;
+```
+
+#### 网格线的名称
+- devtool 里面看不到，方面开发者自己引用而已（项目属性的grid-column-start等）
+- $ \textcolor{red}{网格布局允许同一根线有多个名字，比如[fifth-line row-5]（这句话没看懂）}$
+```css
+.container {
+  display: grid;
+  grid-template-columns: [c1] 100px [c2] 100px [c3] auto [c4];
+  grid-template-rows: [r1] 100px [r2] 100px [r3] auto [r4];
+}
+```
+
+
+### grid-row-gap 属性，grid-column-gap 属性，grid-gap 属性
+
+`grid-row-gap` 属性设置行与行的间隔（行间距），`grid-column-gap` 属性设置列与列的间隔（列间距）。
+
+```css
+.container {
+    grid-row-gap: 20px;
+    grid-column-gap: 20px;
+}
+```
+
+`grid-gap` 属性是 `grid-column-gap` 和 `grid-row-gap` 的合并简写形式，语法如下。
+
+```css
+grid-gap: <grid-row-gap> <grid-column-gap>;
+```
+
+因此，上面一段 CSS 代码等同于下面的代码。
+
+```css
+.container {
+    grid-gap: 20px 20px;
+}
+```
+
+如果 `grid-gap` 省略了第二个值，浏览器认为第二个值等于第一个值。
+
+根据最新标准，上面三个属性名称的 `grid-` 前缀已经删除，`grid-column-gap` 和 `grid-row-gap` 写成 `column-gap` 和 `row-gap` 与 `gap`。
+
+### grid-template-areas 属性
+- 这个可以在开发工具看得到名字（如果某些区域不需要利用，则使用"点"（.）表示）
+- 区域的命名会影响到网格线（个区域的起始网格线，会自动命名为区域名-start，终止网格线自动命名为区域名-end）
+```css
+grid-template-areas: 'a a a'
+                     'b b b'
+                     'c c c';
+
+```
+上面代码将9个单元格分成a、b、c三个区域。
+### grid-auto-flow 属性
+- 放置顺序是"先行后列"，即先填满第一行，再开始放入第二行
+- 配合项目的属性，可以设置一些很怪的布局（具体去看阮一峰的文档）
+
+### justify-items 属性，align-items 属性，place-items 属性
+- justify-items属性设置单元格内容的水平位置
+- align-items属性设置单元格内容的垂直位置
+- place-items 是两个属性简写<align-items> <justify-items>，省略第二个值，则浏览器认为与第一个值相等
+
+### justify-content 属性，align-content 属性，place-content 属性
+- 针对的是整个内容区域，和flex 布局的align-content（多轴） 很像
+<img src="./pic/grid-justify-content.png">
+
+### grid-auto-columns 属性，grid-auto-rows 属性
+- 网格只有3列，但是某一个项目指定在第5行。这时，浏览器会自动生成多余的网格，以便放置项目。浏览器完全根据单元格内容的大小（width不是，width不会超过给定的范围，height是），决定新增网格的列宽和行高
+- $ \textcolor{red}{grid-auto-columns 属性 没找到例子，所以还不懂}$https://developer.mozilla.org/zh-CN/docs/Web/CSS/grid-auto-columns
+- grid-auto-rows属性看这个[阮一峰](https://jsbin.com/sayuric/edit?css,output)
+
+### grid-template 属性，grid 属性
+
+grid-template属性是grid-template-columns、grid-template-rows和grid-template-areas这三个属性的合并简写形式。
+
+grid属性是grid-template-rows、grid-template-columns、grid-template-areas、 grid-auto-rows、grid-auto-columns、grid-auto-flow这六个属性的合并简写形式。
+
+从易读易写的角度考虑，还是建议不要合并属性，所以这里就不详细介绍这两个属性了。
+
+## 项目属性
+
+
+### grid-column-start 属性，grid-column-end 属性，grid-row-start 属性，grid-row-end 属性
+### grid-column 属性，grid-row 属性
+### grid-area 属性
+### justify-self 属性，align-self 属性，place-self 属性
+
+
+# column 的多列布局（TODO）
+参考：
+- [写给自己看的CSS columns分栏布局教程](https://www.zhangxinxu.com/wordpress/2019/01/css-css3-columns-layout/)
