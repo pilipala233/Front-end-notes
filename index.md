@@ -4045,8 +4045,30 @@ grid-template-areas: 'a a a'
 
 ### grid-auto-columns 属性，grid-auto-rows 属性
 - 网格只有3列，但是某一个项目指定在第5行。这时，浏览器会自动生成多余的网格，以便放置项目。浏览器完全根据单元格内容的大小（width不是，width不会超过给定的范围，height是），决定新增网格的列宽和行高
-- $ \textcolor{red}{grid-auto-columns 属性 没找到例子，所以还不懂}$https://developer.mozilla.org/zh-CN/docs/Web/CSS/grid-auto-columns
-- grid-auto-rows属性看这个[阮一峰](https://jsbin.com/sayuric/edit?css,output)
+- grid-auto-columns 属性影响的是width,其实和rows 那个是有点区别的(上面的结论或则第三个例子你可以测试出来的)，目前来说只有类似这种从不直接声明过grid-template-columns属性的，才会触发这个值,你可以用下面的例子测试就不难发现这个结论
+```html
+<div id="grid">
+  <div id="item1"></div>
+  <div id="item2"></div>
+  <div id="item3"></div>
+</div>
+<style>
+  #grid {
+  height: 100px;
+  display: grid;
+  /* grid-template-areas: "a a"; */
+  grid-template-columns: 100px 100px;
+  grid-gap: 10px;
+  grid-auto-columns: 200px;
+}
+
+#grid > div {
+  background-color: lime;
+}
+
+</style>
+```
+- grid-auto-rows属性看这个，影响的是height[阮一峰](https://jsbin.com/sayuric/edit?css,output)
 
 ### grid-template 属性，grid 属性
 
@@ -4060,10 +4082,64 @@ grid属性是grid-template-rows、grid-template-columns、grid-template-areas、
 
 
 ### grid-column-start 属性，grid-column-end 属性，grid-row-start 属性，grid-row-end 属性
-### grid-column 属性，grid-row 属性
-### grid-area 属性
-### justify-self 属性，align-self 属性，place-self 属性
+- grid-column-start属性：左边框所在的垂直网格线
+- grid-column-end属性：右边框所在的垂直网格线
+- grid-row-start属性：上边框所在的水平网格线
+- grid-row-end属性：下边框所在的水平网格线
+```css
+.item-1 {
+  grid-column-start: 1;
+  grid-column-end: 3;
+  grid-row-start: 2;
+  grid-row-end: 4;
+}
+```
+<img src="./pic/grid-column-start.png">
 
+### grid-column 属性，grid-row 属性
+上面的简写
+```css
+.item {
+  grid-column: <start-line> / <end-line>;
+  grid-row: <start-line> / <end-line>;
+}
+```
+### grid-area 属性
+- grid-area属性指定项目放在哪一个区域。
+```css
+.item-1 {
+  grid-area: e;
+}
+```
+<img src="./pic/grid-area.png">
+
+- grid-area属性还可用作grid-row-start、grid-column-start、grid-row-end、grid-column-end的合并简写形式，直接指定项目的位置。
+
+```css
+.item {
+  grid-area: <row-start> / <column-start> / <row-end> / <column-end>;
+}
+```
+下面是一个例子。
+
+```css
+.item-1 {
+  grid-area: 1 / 1 / 3 / 3;
+}
+```
+### justify-self 属性，align-self 属性，place-self 属性
+- justify-self属性设置单元格内容的水平位置（左中右），跟justify-items属性的用法完全一致，但只作用于单个项目。
+
+- align-self属性设置单元格内容的垂直位置（上中下），跟align-items属性的用法完全一致，也是只作用于单个项目。
+
+- place-self属性是align-self属性和justify-self属性的合并简写形式。
+
+  place-self: <align-self> <justify-self>;如果省略第二个值，place-self属性会认为这两个值相等。
+
+
+参考：
+- [grid-auto-columns]( https://developer.mozilla.org/zh-CN/docs/Web/CSS/grid-auto-columns)
+- [CSS Grid 网格布局教程]( https://www.ruanyifeng.com/blog/2019/03/grid-layout-tutorial.html)
 
 # column 的多列布局（TODO）
 参考：
