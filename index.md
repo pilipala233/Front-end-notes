@@ -2306,6 +2306,8 @@ SSR的基本原理可以概括如下：
 # webpack热更新原理（占坑,有时间再详细整理，但其实里面说得算详细了
 参考
  - [轻松理解webpack热更新原理](https://juejin.cn/post/6844904008432222215)
+ - [Webpack HMR 原理解析](https://zhuanlan.zhihu.com/p/30669007)
+ - [Webpack 热更新实现原理分析](https://zhuanlan.zhihu.com/p/30623057)
 
 # js的位运算（待补充完全
 ## 前置
@@ -4144,3 +4146,382 @@ grid属性是grid-template-rows、grid-template-columns、grid-template-areas、
 # column 的多列布局（TODO）
 参考：
 - [写给自己看的CSS columns分栏布局教程](https://www.zhangxinxu.com/wordpress/2019/01/css-css3-columns-layout/)
+
+
+# 尺寸与位置
+
+- **只读属性**
+  - `clientWidth` 和 `clientHeight` 属性(paddinng+content)
+  - `offsetWidth` 和 `offsetHeight` 属性(border+paddinng+content)
+  - `clientTop` 和 `clientLeft` 属性(border)
+  - `offsetLeft` 和 `offsetTop` 属性(offsetParent的border到元素border之间的距离，找不到最近的定位元素那么body就成offsetParent)
+  - `scrollHeight` 和 `scrollWidth` 属性（超出时等于实际宽高，没有超出就是clientWidth和clientHeight）
+
+- **可读可写属性**
+  - `scrollTop` 和 `scrollLeft` 属性（当元素其中的内容超出其宽高的时候，元素被卷起的高度和宽度，不超过就是0）
+  - `domObj.style.xxx` 属性（写在行内的标签样式值，带px）
+
+### 事件对象相关尺寸和位置属性
+- `clientX` 和 `clientY` 属性（相对于浏览器（可视区）的坐标，即浏览器左上角坐标的（0,0））
+- `screenX` 和 `screenY` 属性（相对于屏幕的坐标，以设备屏幕的左上角为原点）
+- `offsetX` 和 `offsetY` 属性（点击该div，以该div左上角为原点来计算鼠标点击位置的坐标）
+- `pageX` 和 `pageY` 属性（该属性是事件发生时鼠标点击位置相对于页面的位置，通常浏览器窗口没有出现滚动条时，该属性和clientX及 clientY是等价的。）
+
+
+ # JS中Object的keys是无序的吗
+-  在 ES6 之前 Object 的键值对是无序的；
+- 在 ES6 之后 Object 的键值对按照自然数、非自然数和 Symbol 进行排序，自然数是按照大小升序进行排序，其他两种都是按照插入的时间顺序进行排序。
+[参考](https://mp.weixin.qq.com/s?__biz=Mzg3OTYwMjcxMA==&mid=2247487182&idx=1&sn=515cca61ab05adfba7c3b4c1357f2bcc&chksm=cf00b3b7f8773aa179a338d9f4ea28fb90925ae39c9b7192056fad5ad7107f4e8421d684ebfa&scene=132#wechat_redirect)
+
+
+# 严格模式
+ES6 的模块自动采用严格模式，不管你有没有在模块头部加上"use strict";。
+
+严格模式主要有以下限制。
+
+- 变量必须声明后再使用
+- 函数的参数不能有同名属性，否则报错
+- 不能使用with语句
+- 不能对只读属性赋值，否则报错
+- 不能使用前缀 0 表示八进制数，否则报错
+- 不能删除不可删除的属性，否则报错
+- 不能删除变量delete prop，会报错，只能删除属性delete global[prop]
+- eval不会在它的外层作用域引入变量
+- eval和arguments不能被重新赋值
+- arguments不会自动反映函数参数的变化
+- 不能使用arguments.callee
+- 不能使用arguments.caller
+- 禁止this指向全局对象
+- 不能使用fn.caller和fn.arguments获取函数调用的堆栈
+- 增加了保留字（比如protected、static和interface）
+
+# js 的基本数据类型。
+
+
+js 一共有六种基本数据类型，分别是 Undefined、Null、Boolean、Number、String，还有在 ES6 中新增的 Symbol 和 ES10 中新增的 BigInt 类型。
+
+Symbol 代表创建后独一无二且不可变的数据类型，它的出现我认为主要是为了解决可能出现的全局变量冲突的问题。
+
+BigInt 是一种数字类型的数据，它可以表示任意精度格式的整数，使用 BigInt 可以安全地存储和操作大整数，即使这个数已经超出了 Number 能够表示的安全整数范围。
+
+# typeof null
+在 JavaScript 的早期版本中，值是以 32 位单位存储的，其中低位部分存储了一个类型标签。类型标签用于识别值的类型：
+```js
+000：对象（Object）
+1：整数（Integer）
+010：双精度浮点数（Double）
+100：字符串（String）
+110：布尔值（Boolean）
+```
+在 JavaScript 最初的实现中，JavaScript 中的值是由一个表示类型的标签和实际数据值表示的。对象的类型标签是 0。由于 null 代表的是空指针（大多数平台下值为 0x00），因此，null 的类型标签是 0，typeof null 也因此返回 "object"
+
+参考：
+- [MDN](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Operators/typeof)
+- [The history of “typeof null”](https://2ality.com/2013/10/typeof-null.html)
+
+
+# Web安全
+## xss
+### 分类
+- 反射型（诱导用户主动点击URL，漏洞常出现在网络检索和跳转，由浏览器解析完成攻击，比如某个搜索接口会返回一个带查询结果的jsp页面或则dom结构前端插入页面显示，这时攻击者利用钓鱼邮件，诱骗用户点击。这时页面在客户端渲染时就会给解析恶意代码）
+- 储存型（由类似评论区提交服务器，存储在服务器，用户全部都能被攻击）
+- Dom型（举个例子：URL#后的参数被利用拿来跳转并innerHTML生成DOM，这是黑客可以把恶意代码加页面中，这样就能获取用户信息或者提交恶意请求）
+### 防护
+- 输入过滤（可能对业务有影响，毕竟转义后的输出的内容不确定用于展示还是计算）
+- 纯前端渲染，把代码和数据分隔开类似innertext（预防存储型和反射型 XSS 攻击）
+- 对 HTML 做充分转义，如果拼接 HTML 是必要的，就需要采用合适的转义库，对 HTML 模板各处插入点进行充分的转义（不能简单转义，因为js本身支持很多种格式转义）
+- Content Security Policy（$ \textcolor{red}{还需要待详细研究}$）
+- 输入内容长度控制
+- HTTP-only Cookie: 禁止 JavaScript 读取某些敏感 Cookie，攻击者完成 XSS 注入后也无法窃取此 Cookie。
+- 验证码：防止脚本冒充用户提交危险操作
+
+## csrf
+本质就是利用cookies 同站点提交的策略（可以发生在夸站点，也可以发生在自己的站点比如Gmail）
+### 防护
+- 阻止不明外域访问
+  - 同源检测
+    - Origin Header
+    - Referer Header
+  - SamesiteCookie
+- 提交时要求附加本域才能获取信息
+  - token
+  - 双重Cookie(此方法相对于CSRF Token就简单了许多。可以直接通过前后端拦截的的方法自动化实现。后端校验也更加方便，只需进行请求中字段的对比，而不需要再进行查询和存储Token。$ \textcolor{red}{不懂，后端方便在哪？不是还是要验证吗？}$)
+## SQL注入
+主要是后端处理，前端可对用户的输入进行校验，可以通过正则表达式，或限制长度；对单引号和双"-"进行转换等
+## IDOR
+URL越权查看
+
+### 防范
+- id加密或则复杂化
+- 校验访问人权限
+
+
+参考：
+- [美团技术团队](https://segmentfault.com/a/1190000016659945)
+
+# webapck 几个核心概念
+- Entry：入口，Webpack 执行构建的第一步将从 - - Entry 开始，可抽象成输入。
+- Module：模块，在 Webpack 里一切皆模块，一个模块对应着一个文件。Webpack 会从配置的 Entry 开始递归找出所有依赖的模块。
+- Chunk：代码块，一个 Chunk 由多个模块组合而成，用于代码合并与分割。
+- Loader：模块转换器，用于把模块原内容按照需求转换成新内容。
+- Plugin：扩展插件，在 Webpack 构建流程中的特定时机注入扩展逻辑来改变构建结果或做你想要的事情。
+- Output：输出结果，在 Webpack 经过一系列处理并得出最终想要的代码后输出结果
+参考：
+- [深入浅出webpack](https://webpack.wuhaolin.cn/1%E5%85%A5%E9%97%A8/1-7%E6%A0%B8%E5%BF%83%E6%A6%82%E5%BF%B5.html)
+# webpack4性能优化（我为什么写4，因为5我没用过XD
+- 更新版本（尽可能使用比较新的 Webpack、Node、Npm、Yarn 版本）
+- 使用工具分析打包结果以及分析构建速度
+- Webpack 多进程打包（parallel-webpack、thread-loader、happypack）
+- 使用 DllPlugin 提高打包速度
+- 开启相应 loader 或者 plugin 的缓存，来提升二次构建的速度
+- 缩小构建目标
+  - 尽可能精准的命中Loader
+  - Plugin 尽可能精简（开发环境不需要时可以不配置）并确保可靠（官方推荐的性能比较好）
+  - resolve 参数合理配置
+    - extensions（文件呢拓展名）
+    - mainFiles（文件夹默认文件）
+    - alias（别名）
+    - modules（解析模块时应该搜索的目录）
+- 控制包文件大小【只有这里是针对打包后的体积】
+  - 使用 webpack 进行图片压缩
+  - 无用的 CSS 使用 tree shaking（js部分内置已经开启了）
+  - 使用动态 Polyfill 服务（polyfill-service）
+  - 合理使用 sourceMap
+
+参考：
+- [webpack-doc](https://github.com/darrell0904/webpack-doc)
+
+
+# JavaScript 中数组、Symbol 的创建方式
+
+## 数组的创建方式
+
+1. **使用数组字面量：**
+   ```javascript
+   const arr1 = [1, 2, 3];
+   ```
+
+2. **使用 Array 构造函数：**
+   ```javascript
+   const arr2 = new Array(1, 2, 3);
+   const arr3 = new Array(3); // 创建一个长度为 3 的空数组
+   ```
+
+3. **使用 Array.of：**
+   ```javascript
+   const arr4 = Array.of(1, 2, 3);
+   ```
+
+4. **使用 Array.from：**
+   ```javascript
+   const arr5 = Array.from([1, 2, 3]);
+   const arr6 = Array.from('hello'); // ['h', 'e', 'l', 'l', 'o']
+   ```
+
+## Symbol 的创建方式
+
+1. **使用 Symbol 函数：**
+   ```javascript
+   const sym1 = Symbol();
+   const sym2 = Symbol('description');
+   ```
+
+2. **使用全局 Symbol 注册表：**
+   ```javascript
+   const sym3 = Symbol.for('sharedSymbol');
+   const sym4 = Symbol.for('sharedSymbol'); // sym3 === sym4
+   const key = Symbol.keyFor(sym3); // 'sharedSymbol'
+   ```
+
+# AMD、CMD、CJS、ES模块化(todo)
+
+# 字符串裁剪
+- slice(beginIndex[, endIndex]) 
+  - 負數的情況下都是長度-index，結果還是負數的話直接當作0
+  - 只有begin時，負數大於長度的情況下，直接全部返回
+  - 兩個參數都有時，确無法正常計算時返回空，比如str.slice(6,-93)
+  - 數組的方法理念和這個一樣
+
+- substr(start[, length]) 
+ - 第二個是長度，所以不會有負數，有負數當作無法正常運算，返回空
+ - start負數情況時也是長度-index
+ - 不屬於標準一部分，已經廢棄了
+
+- substring(indexStart[, indexEnd]) 
+  - 任一參數小於0直接當0處理
+  - indexStart 大于 indexEnd，會交換兩個值
+  - 如果任一参数大于 stringName.length，则被当作 stringName.length
+
+# 数组的裁剪方法
+- Array.prototype.slice()
+
+- Array.prototype.splice()
+参数意义分别为：起始位置（包括本身）；要删除的个数；要新增的数据（可能是插入也可能是新增，可以输多个参数）。
+
+# 数组的拷贝
+- slice(): 创建一个新数组，浅拷贝原数组的所有元素。
+- 展开运算符: 使用 ... 操作符创建一个新数组，浅拷贝原数组的所有元素。
+- Array.from(): 创建一个新数组，浅拷贝原数组的所有元素。
+- concat(): 通过连接空数组创建一个新数组，浅拷贝原数组的所有元素。
+- structuredClone(): 提供更全面的拷贝功能，但可以用于深浅拷贝。
+
+# new 操作符具体干了什么呢？如何实现？
+
+先看一下new 的大概运行结果
+```js
+function Otaku (name, age) {
+    this.strength = 60;
+    this.age = age;
+
+    return 'handsome boy';
+}
+
+var person = new Otaku('Kevin', '18');
+
+console.log(person.name) // undefined
+console.log(person.habit) // undefined
+console.log(person.strength) // 60
+console.log(person.age) // 18
+
+
+function Otaku (name, age) {
+    this.strength = 60;
+    this.age = age;
+
+    return {};
+}
+
+var person = new Otaku('Kevin', '18');
+
+console.log(person.name) // undefined
+console.log(person.habit) // undefined
+console.log(person.strength) // undefined
+console.log(person.age) // undefined
+
+```
+（1）首先创建了一个新的空对象
+（2）设置原型，将对象的原型设置为函数的 prototype 对象。
+（3）让函数的 this 指向这个对象，执行构造函数的代码（为这个新对象添加属性）
+（4）判断函数的返回值类型，如果是值类型，返回创建的对象。如果是引用类型，就返回这个引用类型的对象。
+```js
+
+
+function objectFactory() {
+  let newObject = null,
+    constructor = Array.prototype.shift.call(arguments),
+    result = null;
+  // 参数判断
+  if (typeof constructor !== "function") {
+    console.error("type error");
+    return;
+  }
+  // 新建一个空对象，对象的原型为构造函数的 prototype 对象
+  newObject = Object.create(constructor.prototype);
+  // 将 this 指向新建对象，并执行函数
+  result = constructor.apply(newObject, arguments);
+  // 判断返回对象
+  let flag =
+    result && (typeof result === "object" || typeof result === "function");
+  // 判断返回结果
+  return flag ? result : newObject;
+}
+```
+# JS DOM变化的监听检测(todo)
+
+# 前端的异常处理(todo)
+
+# 原型链查找(todo)
+- in
+- hasOwnProperty
+- __proto__
+- instanceof
+
+
+# 浏览器的缓存机制(todo)
+
+# 跨域问题的处理(todo)
+
+
+
+
+# 类数组转数组
+类数组对象是指那些具有 `length` 属性，并且可以通过索引访问其元素的对象
+## 1. **`Array.from()`**
+
+  ```javascript
+  const args = {0: 'a', 1: 'b', length: 2}; // 类数组对象
+  const array = Array.from(args); // 转换为真正的数组
+  console.log(array); // ['a', 'b']
+  ```
+
+## 2. **展开运算符（Spread Operator）**
+
+  ```javascript
+  const args = {0: 'a', 1: 'b', length: 2}; // 类数组对象
+  const array = [...Array.from(args)]; // 使用 Array.from() 转换为数组
+  console.log(array); // ['a', 'b']
+  ```
+
+## 3. **`Array.prototype.slice.call()`**
+
+  ```javascript
+  const args = {0: 'a', 1: 'b', length: 2}; // 类数组对象
+  const array = Array.prototype.slice.call(args); // 转换为数组
+  console.log(array); // ['a', 'b']
+  ```
+
+## 4. **`Array.prototype.concat.apply()`**
+
+
+  ```javascript
+  const args = {0: 'a', 1: 'b', length: 2}; // 类数组对象
+  const array = Array.prototype.concat.apply([], args); // 转换为数组
+  console.log(array); // ['a', 'b']
+  ```
+
+## 5. **`Array.prototype.map.call()`**
+
+
+  ```javascript
+  const args = {0: 'a', 1: 'b', length: 2}; // 类数组对象
+  const array = Array.prototype.map.call(args, function(x) { return x; }); // 转换为数组
+  console.log(array); // ['a', 'b']
+  ```
+
+## 6. **`Array.of()`**
+
+  ```javascript
+  const args = {0: 'a', 1: 'b', length: 2}; // 类数组对象
+  const array = Array.of(...Object.values(args)); // 将类数组对象的值展开到数组中
+  console.log(array); // ['a', 'b']
+  ```
+## 7. Array.prototype.splice()
+```js
+const args = {0: 'a', 1: 'b', length: 2}; // 类数组对象
+const array = [];
+Array.prototype.splice.call(array, 0, 0, ...args);
+console.log(array); // ['a', 'b']
+
+```
+
+## 8. Array.prototype.reduce()
+```js
+Array.prototype.reduce.call(arrayLike, (acc, val) => { acc.push(val); return acc; }, []);
+
+```
+
+## 太多了，到这里你估计发现了，其实，只要原生的array 方法上能返回新数组的方法，他都可以处理
+
+### 总结
+
+- **`Array.from()`**: 将类数组对象或其他可迭代对象转换为数组。
+- **展开运算符**: 将类数组对象展开成数组元素。
+- **`Array.prototype.slice.call()`**: 使用 `slice` 方法将类数组对象转换为数组。
+- **`Array.prototype.concat.apply()`**: 使用 `concat` 方法将类数组对象转换为数组。
+- **`Array.prototype.map.call()`**: 使用 `map` 方法将类数组对象转换为数组并可以执行映射操作。
+- **`Array.of()`**: 创建新数组，适用于将对象值转换为数组。
+- **`Array.prototype.splice()()`**
+- **`Array.prototype.reduce()`**
+- 一切返回新数组的方法都可以，只要绑定this
+
+
