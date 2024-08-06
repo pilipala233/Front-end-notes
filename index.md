@@ -230,6 +230,25 @@
     - 符号（Symbol）：仅当两个操作数引用相同的符号时返回 true。
 2. 如果其中一个操作数为 null 或 undefined，另一个操作数也必须为 null 或 undefined 以返回 true。否则返回 false。
 3. 如果其中一个操作数是对象，另一个是基本类型，按此顺序使用对象的 @@toPrimitive()（以 "default" 作为提示），valueOf() 和 toString() 方法将对象转换为基本类型。（这个基本类型转换与相加中使用的转换相同。）
+具体大概这样：
+- 如果部署了 Symbol.toPrimitive 方法，优先调用再返回；
+- 调用 valueOf()，如果转换为基础类型，则返回；
+- 调用 toString()，如果转换为基础类型，则返回；
+- 如果都没有返回基础类型，会报错。
+```js
+let a = {
+  valueOf() {
+    return 0
+  },
+  toString() {
+    return '1'
+  },
+  [Symbol.toPrimitive]() {
+    return 2
+  }
+}
+1 + a //3
+```
 4. 在这一步，两个操作数都被转换为基本类型（String、Number、Boolean、Symbol 和 BigInt 中的一个）。其余的转换是逐个进行的。
     - 如果是相同的类型，使用步骤 1 进行比较。
     - 如果其中一个操作数是 Symbol 而另一个不是，返回 false。
@@ -240,6 +259,7 @@
 
 其中
 > js核心内置类，会尝试valueOf先于toString；例外的是Date，Date利用的是toString转换。
+会不会是因为没有toPrimitive 部署的和toString同方法？
 
 
 
@@ -1658,7 +1678,49 @@ defer：脚本的加载是异步进行的，但是执行是按照它们在文档
 
   - attachEvent和detachEvent
 
-  ​
+
+# DOM级别与DOM事件
+DOM级别一共可以分为4个级别：DOM0级，DOM1级，DOM2级、 DOM3级以及DOM4（当前开发），而DOM事件分为3个级别：DOM0级事件处理，DOM2级事件处理和DOM3级事件处理。
+## DOM级别
+- DOM Level 0：
+
+早期的 DOM 实现，主要是浏览器特定的实现。通常不被视为正式的规范级别。
+
+- DOM Level 1：
+
+定义了基本的 DOM 结构和接口，如 Document、Element 和 Node 接口。
+
+- DOM Level 2：
+
+引入了事件处理模型（捕获和冒泡）和 addEventListener/removeEventListener 方法，用于处理和管理事件。
+增加了 CSS 和 DOM 样式操作的支持。
+
+- DOM Level 3：
+
+扩展了事件处理（包括更多的事件类型和属性），引入了 DOMParser 和 XMLSerializer 等功能，用于解析和序列化文档。
+支持自定义事件，进一步增强了事件处理能力。
+
+- DOM Level 4：
+
+继续扩展和改进 DOM 功能，包括更强大的事件处理和自定义事件功能（CustomEvent）。
+提供了更全面的 API 和改进的事件机制。
+## DOM级别中的事件
+DOM0级事件就是将一个函数赋值给一个事件处理属性，可以通过给事件处理属性赋值null来解绑事件。缺点在于一个处理程序无法同时绑定多个处理函数
+
+DOM2级事件定义了addEventListener和removeEventListener两个方法，分别用来绑定和解绑事件，IE8级以下版本不支持addEventListener和removeEventListener，需要用attachEvent和detachEvent来实现
+
+DOM3级事件在DOM2级事件的基础上添加了更多的事件类型，全部类型如下：
+
+- UI事件，当用户与页面上的元素交互时触发，如：load、scroll
+- 焦点事件，当元素获得或失去焦点时触发，如：blur、focus
+- 鼠标事件，当用户通过鼠标在页面执行操作时触发如：dbclick、mouseup
+- 滚轮事件，当使用鼠标滚轮或类似设备时触发，如：mousewheel
+- 文本事件，当在文档中输入文本时触发，如：textInput
+- 键盘事件，当用户通过键盘在页面上执行操作时触发，如：keydown、keypress
+- 合成事件，当为IME（输入法编辑器）输入字符时触发，如：compositionstart
+- 变动事件，当底层DOM结构发生变化时触发，如：DOMsubtreeModified
+- 同时DOM3级事件也允许使用者自定义一些事件（DOM4进一步完善）。
+
 
 # 执行上下文生命周期
 
@@ -4255,6 +4317,7 @@ URL越权查看
 - id加密或则复杂化
 - 校验访问人权限
 
+## Spectre漏洞(TODO)
 
 参考：
 - [美团技术团队](https://segmentfault.com/a/1190000016659945)
@@ -4523,5 +4586,429 @@ Array.prototype.reduce.call(arrayLike, (acc, val) => { acc.push(val); return acc
 - **`Array.prototype.splice()()`**
 - **`Array.prototype.reduce()`**
 - 一切返回新数组的方法都可以，只要绑定this
+
+
+# 原码、反码和补码的介绍
+```
+原码是计算机中对数字的二进制的定点表示方法，最高位表示符号位，其余位表示数值位。优点是易于分辨，缺点是不能够直接参与运算。
+正数的反码和其原码一样；负数的反码，符号位为1，数值部分按原码取反。
+如 [+7]原 = 00000111，[+7]反 = 00000111； [-7]原 = 10000111，[-7]反 = 11111000。
+正数的补码和其原码一样；负数的补码为其反码加1。
+例如 [+7]原 = 00000111，[+7]反 = 00000111，[+7]补 = 00000111；
+[-7]原 = 10000111，[-7]反 = 11111000，[-7]补 = 11111001
+之所以在计算机中使用补码来表示负数的原因是，这样可以将加法运算扩展到所有的数值计算上，因此在数字电路中我们只需要考虑加法器的设计就行了，而不用再为减法设置新的数字电路。
+```
+详细资料可以参考：
+[《关于 2 的补码》](http://www.ruanyifeng.com/blog/2009/08/twos_complement.html)
+
+# 正则与汉字
+- /[\u4e00-\u9fa5]/已经过时了，请不要再使用二十年前的正则表达式了。
+- /\p{Unified_Ideograph}/u不需要维护，匹配所有汉字。这里\p是 Unicode 属性转义正则表达式。
+- /\p{Ideographic}/u 和 /\p{Script=Han}/u 都是/\p{Unified_Ideograph}/u的超集，匹配了除了汉字以外的其他一些字符，在「汉字匹配正则表达式」这个需求下，是错的。
+- 目前 Chrome 和 Safari 支持 Unicode 属性转义正则表达式。对其他环境，使用 7.7 版本的 @babel/env 就可以自动根据浏览器规定打开支持。
+
+
+[详细链接](https://jhuang.me/2018/01/26/JavaScript-%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F%E5%8C%B9%E9%85%8D%E6%B1%89%E5%AD%97/)
+
+# Web Worker(TODO)
+
+# 浏览器的缓存策略(TODO)
+
+# 对象的深浅拷贝
+- Object.assign()：只能实现一维对象的深拷贝
+- 展开运算符：浅拷贝
+- JSON.parse(JSON.stringify(obj))：可实现多维对象的深拷贝
+> 注意，该方法的局限性：
+> 1. 不能存放函数或者 Undefined，否则会丢失函数或者 Undefined；
+> 1. 不要存放时间对象，否则会变成字符串形式；
+> 1. 不能存放 RegExp、Error 对象，否则会变成空对象；
+> 1. 不能存放 NaN、Infinity、-Infinity，否则会变成 null；
+> 1. 会抛弃对象的constructor,所有的构造函数会指向Object;
+> 1. 对象有循环引用,会报错;
+> 1. 不可枚举的属性无用
+> 1. ……更多请自行填坑，具体来说就是 JavaScript 和 JSON 存在差异，两者不兼容的就会出问题。
+
+- 自己递归实现
+- structuredClone()
+
+# js遍历自身
+- for...in(先自身,后原型链除Symbol外可遍历的属性)
+- Object.keys()(自身不包含Symbol外可遍历的属性)
+- Objcet.getOwnPropertyNames()（自身除Symbol)
+- Reflect.ownKeys()(自身全部)
+- for...of （遍历可迭代对象定义要迭代的数据。）
+- Object.getOwnPropertySymbols()：返回对象自身的所有符号属性
+
+
+# Symbol作用
+- 唯一性，可以避免实例自定义的属性或方法覆盖原型上的属性或方法
+- 定义类的私有属性
+- 11个内置Symbol值定制开发（比如给其他复合类型部署了Symbol.iterator迭代器，提供统一的遍历接口（iterator底层是next方法））
+
+
+# js中取整数
+
+- Number.parseInt(5/2)  2   丢弃小数部分
+
+- toFixed() 参数不写就可以四舍五入一位小数，但是对于多位，是不正常的，原因是精度问题
+
+- Math.ceil(5/2)   3  向上取整
+
+- Math.floor(5/2)  2  向下取整
+
+- Math.round(5/2)  3  四舍五入
+
+- Math.trunc(5.99) 5 丢弃小数部分
+
+- |0 5.99|0
+
+- ~~ 5.88~~
+
+# HTMLCollection和NodeList
+## 常见html元素的分类
+其实一共有12种，没有废弃的还在使用的9种
+- 元素节点 (Element Node)
+- 文本节点 (Text Node)
+- 注释节点 (Comment Node)
+- 文档节点 (Document Node)
+- 文档类型节点 (DocumentType Node)`<!DOCTYPE html>`
+- 属性节点 (Attribute Node)在现代 DOM API 中，属性节点的概念已经不再直接使用。属性是元素节点的一部分,但是值还是2。
+- 文档碎片流(Node.DOCUMENT_FRAGMENT_NODE)
+- 处理指令节点 (Processing Instruction Node)（XML）
+- Node.CDATA_SECTION_NODE(XML)
+## 相同点
+- 都是类数组对象，都有length属性
+- 都有共同的方法：item，可以通过item(index)或者item(id)来访问返回结果中的元素
+## 区别
+- HTMLCollection：实时，通常包含元素节点，常通过 getElementsByTagName、getElementsByClassName、document.forms 等方法获取。
+- NodeList：可以是实时的（如 childNodes）或静态的（如 querySelectorAll），可以包含所有类型的节点，常通过 querySelectorAll 或 childNodes 获取。
+- HTMLCollection比NodeList多一项方法：namedItem，可以通过传递id或name属性来获取节点信息
+
+参考：
+- [MDN](https://developer.mozilla.org/zh-CN/docs/Web/API/Node/nodeType#node.attribute_node)
+- [HTMLCollection](https://developer.mozilla.org/zh-CN/docs/Web/API/HTMLCollection)
+# 设计模式(TODO)
+设计模式的经典划分通常是23种，但在不同的来源和实现中，可能会有些许变化。例如，有些资料和书籍可能会增加或合并一些模式，或提供一些额外的变体和应用。
+
+## 经典的23种设计模式包括：
+
+1. **创建型模式 (Creational Patterns)**：
+   - 单例模式 (Singleton)
+   - 工厂方法模式 (Factory Method)
+   - 抽象工厂模式 (Abstract Factory)
+   - 建造者模式 (Builder)
+   - 原型模式 (Prototype)
+
+2. **结构型模式 (Structural Patterns)**：
+   - 适配器模式 (Adapter)
+   - 桥接模式 (Bridge)
+   - 组合模式 (Composite)
+   - 装饰器模式 (Decorator)
+   - 外观模式 (Facade)
+   - 享元模式 (Flyweight)
+   - 代理模式 (Proxy)
+
+3. **行为型模式 (Behavioral Patterns)**：
+   - 责任链模式 (Chain of Responsibility)
+   - 命令模式 (Command)
+   - 解释器模式 (Interpreter)
+   - 迭代器模式 (Iterator)
+   - 中介者模式 (Mediator)
+   - 备忘录模式 (Memento)
+   - 观察者模式 (Observer)
+   - 状态模式 (State)
+   - 策略模式 (Strategy)
+   - 模板方法模式 (Template Method)
+   - 访问者模式 (Visitor)
+
+## 可能的额外模式或变体：
+
+1. **空对象模式 (Null Object)**：定义一个对象，作为一种特定的空值对象，提供相同的接口但不执行实际操作。
+2. **延迟初始化模式 (Lazy Initialization)**：在需要时才创建对象，而不是在程序开始时创建。
+
+# with(TODO)
+# eval(TODO)
+# new Function(TODO)
+
+# 用setTimeout()方法来模拟setInterval()
+## 原因：
+setInterval并不会等待回调函数执行完毕才去下一轮，而是机械的定时往回调栈扔东西；当我们希望回调函数之间的重复执行间隔是固定时（当然也未必准时，和当前event loop 处理也有关系，但起码对比setInterval能更为接近理想情况），需要使用setTimeout()方法来模拟setInterval()
+```js
+let timerId;
+
+function simulateInterval(callback, interval) {
+  function repeat() {
+    callback(); // 执行回调函数
+    timerId = setTimeout(repeat, interval); // 在指定的间隔后再次调用 repeat 函数
+  }
+
+  timerId = setTimeout(repeat, interval); // 初次调用
+}
+
+function stopInterval() {
+  clearTimeout(timerId); // 清除定时器
+}
+
+// 使用示例
+simulateInterval(() => {
+  console.log('This message is displayed every 1000 milliseconds');
+}, 1000);
+
+// 停止定时器
+setTimeout(stopInterval, 5000); // 5秒后停止定时器
+
+```
+
+# 判断数组的方法(TODO)
+# 判断对象的方法(TODO)
+# 国际化(TODO)
+# 图片懒加载(TODO)
+# DOM元素监听(TODO)
+# 浏览器的 5 种 Observer
+- MutationObserver：用于检测 DOM 结构和属性的变化，如节点的添加、删除、属性的修改等。它不关心元素的尺寸或布局变化
+- IntersectionObserver：用于监控元素与视口或祖先的交叉状态。
+- PerformanceObserver：用于监控性能指标。
+- ResizeObserver：用于监控元素尺寸变化。
+- ReportingObserver：用于捕获浏览器的性能和错误报告
+
+参考：
+- [浏览器的 5 种 Observer，你用过几种？](https://mp.weixin.qq.com/s/RKtlyxs0EeyLfAH9Q3r6nQ)
+
+
+# 简单请求与非简单请求
+浏览器将CORS请求分成两类：简单请求（simple request）和非简单请求（not-so-simple request）。
+
+只要同时满足以下两大条件，就属于简单请求。
+
+> （1) 请求方法是以下三种方法之一：
+> 
+> HEAD  
+> GET  
+> POST  
+> 
+>（2）HTTP的头信息不超出以下几种字段：
+> 
+> Accept   
+> Accept-Language   
+> Content-Language   
+> Last-Event-ID   
+> Content-Type：只限于三个值application/x-www-form-urlencoded、multipart/form-data、text/plain
+>（3）不允许不允许设置任何自定义请求头
+
+简单请求不发送预检请求
+
+# 图片的分类(TODO)
+参考：https://juejin.cn/post/6844903790651375623#heading-5
+
+# 浏览器的垃圾回收算法
+- 引用计数垃圾收集（“对象是否不再需要”简化定义为“对象有没有其他对象引用到它”；限制：循环引用）
+- 标记-清除算法（“对象是否不再需要”简化定义为“对象是否可以获得”；限制: 那些无法从根对象查询到的对象都将被清除）
+
+参考[：MDN](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Memory_Management)
+
+# encodeURI、encodeURIComponent和escape
+escape:
+> escape和它们不是同一类
+> escape是对字符串(string)进行编码(而另外两种是对URL)，作用是让它们在所有电脑上可读。
+> 编码之后的效果是%XX或者%uXXXX这种形式。
+> 其中 ASCII字母、数字、@*/+ ，这几个字符不会被编码，其余的都会。
+> 最关键的是，当你需要对URL编码时，请忘记这个方法，这个方法是针对字符串使用的，不适用于URL
+> 
+
+encodeURI和encodeURIComponent:
+
+> encodeURI方法不会对下列字符编码 ASCII字母、数字、~!@#$&*()=:/,;?+'
+> encodeURIComponent方法不会对下列字符编码 ASCII字母、数字、~!*()'
+> 所以encodeURIComponent比encodeURI编码的范围更大。
+
+
+https://zhuanlan.zhihu.com/p/101958014
+
+
+# 文件传输相关
+
+## 分片上传
+### 文件上传
+
+- 文件上传只要弄清楚content-type 和所要传输的数据就行了，其余的其实并不难
+- 理论上来说只要前后端接口沟通好，用什么类型都可以
+- 常用的是multipart/form-data，这种类型会有一个boundary 的分割符号，浏览器自动生成，除非你自己自定义
+- 至于文件传输的数据本身，其实主要就是Blob对象或者其子类File对象（据说兼容性差一点），所以你的工作只是各种格式之间的转换而已。并不是说网络传输认这两种类型，而是封装的FormData这个类可以简化请求头的书写，而它的方法只接受这两个类型，不直接接受二进制数据
+- 这里就不讨论baseurl格式了，本质就是这字符串，走常用的application/json就行了
+- 至于application/x-www-form-urlencoded，这种常见用于form表单的数据传输（“1867文档中也写了为什么要新增一个类型，而不使用旧有的application/x-www-form-urlencoded：因为此类型不适合用于传输大型二进制数据或者包含非ASCII字符的数据。”）
+- 后端发送给后端的话，因为没有浏览器的帮组，所以读取到的buffer需要自己处理字段名以及格式等传参
+- 后端的Stream、Base64 转换成 buffer 处理就好了（方法我还没找）
+- FileReader主要用于读取 Blob 或 File 对象的内容,通过读取的内容（如 ArrayBuffer），可以创建新的 Blob 或 File 对象;可以读取base64;也可以读取text;也可以读取直接的二进制内容（弃用）
+- ArrayBuffer 的话可以通过构造函数直接变成Blob或者File
+- base64 可以通过解码在进行TypedArray填充，最后进行Blobe对象构造，如果需要，再把File对象构造
+- 至于其他的拿不到的，可以考虑放到canvas里面再拿出来转换
+
+
+
+
+### 断点续传
+断点续传的实现往往依赖分片上传
+
+<img src="./pic/断点续传.png">
+
+这块不想总结了，看部分关键代码
+
+```js
+
+async function splitFile(file) {
+  return new Promise((resolve) => {
+    // 分片尺寸（1M）
+    const chunkSize = 1024 * 1024;
+    // 分片数量
+    const chunkCount = Math.ceil(file.size / chunkSize);
+    // 当前chunk的下标
+    let chunkIndex = 0;
+    // 使用ArrayBuffer完成文件MD5编码
+    const spark = new SparkMD5.ArrayBuffer();
+    const fileReader = new FileReader(); // 文件读取器
+    const chunks = []; // 分片信息数组
+    // 读取一个分片后的回调
+    fileReader.onload = function (e) {
+      spark.append(e.target.result); // 分片数据追加到MD5编码器中
+      // 当前分片单独的MD5
+      const chunkMD5 = SparkMD5.ArrayBuffer.hash(e.target.result) + chunkIndex;
+      chunkIndex++;
+      chunks.push({
+        id: chunkMD5,
+        content: new Blob([e.target.result]),
+      });
+      if (chunkIndex < chunkCount) {
+        loadNext(); // 继续读取下一个分片
+      } else {
+        // 读取完成
+        const fileId = spark.end();
+        resolve({
+          fileId,
+          ext: extname(file.name),
+          chunks,
+        });
+      }
+    };
+    // 读取下一个分片
+    function loadNext() {
+      const start = chunkIndex * chunkSize,
+        end = start + chunkSize >= file.size ? file.size : start + chunkSize;
+
+      fileReader.readAsArrayBuffer(file.slice(start, end));
+    }
+
+    /**
+     * 获取文件的后缀名
+     * @param {string} filename 文件完整名称
+     */
+    function extname(filename) {
+      const i = filename.lastIndexOf('.');
+      if (i < 0) {
+        return '';
+      }
+      return filename.substr(i);
+    }
+
+    loadNext();
+  });
+}
+
+async function uploadPiece() {
+  if (!needs) {
+    return;
+  }
+  if (needs.length === 0) {
+    // 上传完成
+    setProgress();
+    $('.btn.control')[0].dataset.status = 'finish';
+    domControls.setStatus();
+    domControls.setLink(
+      `http://localhost:8000/upload/${fileInfo.fileId}${fileInfo.ext}`
+    );
+    return;
+  }
+  const status = $('.btn.control')[0].dataset.status;
+  if (status !== 'uploading') {
+    return;
+  }
+  const nextChunkId = needs[0];
+  const file = fileInfo.chunks.find((it) => it.id === nextChunkId).content;
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('chunkId', nextChunkId);
+  formData.append('fileId', fileInfo.fileId);
+  const resp = await fetch('http://localhost:8000/api/upload', {
+    method: 'POST',
+    body: formData,
+  }).then((resp) => resp.json());
+  needs = resp.data;
+  setProgress();
+  uploadPiece();
+}
+
+```
+
+## 断点续传下载
+
+### 文件下载前提
+
+'Content-Disposition': `attachment; filename=${fileName}`
+### 断点下载的实现过程
+若要实现下载时的断点续传，首先，服务器在响应时，要在头中加入下面的字段
+```Accept-Ranges: bytes```
+这个字段是向客户端表明:我这个文件可以支持传输部分数据，你只需要告诉我需要哪一部分的数据即可，单位是字节
+此时，某些支持断点续传的客户端，比如迅雷，它就可以在请求时，告诉服务器需要的数据范围。具体做法是在请求头中加入下面的字段
+```range: bytes=0-5000```
+客户端告诉服务器:请给我传递0-5888字节范围内的数据即可，无须传输全部数据
+
+
+<img src="./pic/断点续传下载.png">
+
+参考：
+ - [一文了解文件上传全过程](https://mp.weixin.qq.com/s/h8kbmJSI0JX537_O-pm5xA)
+ - [S的二进制家族：Blob、ArrayBuffer和Buffer](https://zhuanlan.zhihu.com/p/97768916)
+ - [渡一教育]()
+
+
+# 时间格式
+
+- gmt：「格林威治标准时间」(Greenwich Mean Time，简称G.M.T.)
+
+- utc： Coordinated Universal Time－ 世界协调时间（又称世界标准时间、世界统一时间），(new Date 输出的就是这个)
+
+- dst：夏日节约时间」Daylight Saving Time（简称D.S.T.），
+
+- cst：4个不同的时区
+
+    - Central Standard Time (USA) UT-6:00
+    - 
+    - Central Standard Time (Australia) UT+9:30
+    - 
+    - China Standard Time UT+8:00
+    - 
+    - Cuba Standard Time UT-4:00
+
+可见，CST可以同时表示美国，澳大利亚，中国，古巴四个国家的标准时间。
+
+- cet：Central European Time，CET）欧洲中部时间
+
+ 
+
+总结：
+
+- UTC≈GMT（严格并不相等，UTC较 GMT 精确） 
+- CET=UTC/GMT + 1小时
+- CST=UTC/GMT +8 小时
+- CST=CET+7
+
+# ES6类私有域
+- 私有实例字段(#只能在内部使用)
+    - 可继承
+- 静态方法（static ）（同为修饰符的还有public,private,protected好像js还没有）
+    - 能被继承
+- 私有静态字段（static #）
+    - 静态变量只能被静态方法调用
+    - 只有定义该私有静态字段的类能访问该字段
+    - 注意this，内部不能直接this使用
 
 
