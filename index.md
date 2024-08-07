@@ -2942,9 +2942,173 @@ Vite 在开发模式下表现出比 Webpack 更快的性能，主要是因为它
 
 
 
-# vuex 原理实现（占坑
+# vuex 原理实现
+## 前置
+- dispatch 用于action,commit 用于mutation
+- 理论上是先action(可以处理异步)再mutation,state 只被mutation修改
+- 实际上action 和 mutation 都可以直接修改state
+- dispatch 和 commit 都是两个参数，一个是类型名称，第二个是传过来的数据
+- action 的参数是一个对象，包含了commit方法，dispatch(分发给其他action),state,rootState(模块化时),rootGetters(模块化时)
+- mutation 的参数有两个，一个是state,另一个是commit 传过来的数据
+
+## 原理
+```js
+
+let Vue;
+
+class Store {
+  constructor(options) {
+    // state响应式处理
+    this._vm = new Vue({
+      data: {
+        $$state: options.state,
+      },
+    });
+
+    this._mutations = options.mutations;
+    this._actions = options.actions;
+
+    this.commit = this.commit.bind(this);
+    this.dispatch = this.dispatch.bind(this);
+
+    this.getters = {};
+    options.getters && this.handleGetters(options.getters);
+  }
+
+  handleGetters(getters) {
+    Object.keys(getters).map((key) => {
+      Object.defineProperty(this.getters, key, {
+        get: () => getters[key](this.state),
+      });
+    });
+  }
+
+  get state() {
+    return this._vm._data.$$state;
+  }
+
+  set state(v) {
+    console.error("Please use replaceState to reset state");
+  }
+
+  commit(type, payload) {
+    const entry = this._mutations[type];
+    if (!entry) {
+      console.error(`unknown mutation type: ${type}`);
+      return;
+    }
+    entry(this.state, payload);
+  }
+
+  dispatch(type, payload) {
+    const entry = this._actions[type];
+    if (!entry) {
+      console.error(`unknown action type: ${type}`);
+      return;
+    }
+    return entry(this, payload);
+  }
+
+
+}
+  
+const install = (_Vue)=>{
+    Vue = _Vue
+    Vue.mixin({
+        beforeCreate() {
+          if(this.$options.store){
+            Vue.prototype.$store = this.$options.store
+          }
+        },      
+      }
+    )
+};
+
+
+export default {Store,install}
+```
+
 - 参考[1.1.4 vuex原理源码实现](https://www.bilibili.com/video/BV12k4y1C7mq/?spm_id_from=333.999.0.0&vd_source=dbd4e06376cfe7144e0331f427521399)
-# vue-router 原理实现（占坑
+
+
+# vue-router 原理实现
+
+```js
+let Vue; // 保存Vue的构造函数，在插件中要使用
+
+class VueRouter {
+  constructor(options) {
+    this.$options = options;
+
+    // 把this.current变为响应式的数据
+    // 将来数据一旦发生变化，router-view的render函数就能重新执行
+    let initial = window.location.hash.slice(1) || "/";
+    Vue.util.defineReactive(this, "current", initial);
+    
+    // 监听hashchange事件
+    window.addEventListener("hashchange", () => {
+      this.current = window.location.hash.slice(1);
+      console.log("hashchange", this.current);
+    });
+  }
+}
+
+// 插件的install方法
+VueRouter.install = (_Vue) => {
+  Vue = _Vue;
+
+  // 1. 挂载$router属性
+  Vue.mixin({
+    beforeCreate() {
+      if (this.$options.router) {
+        Vue.prototype.$router = this.$options.router;
+      }
+    },
+  });
+
+  // 2. 实现两个组件: router-link, router-view
+  Vue.component("router-link", {
+    props: {
+      to: {
+        type: String,
+        required: true,
+      },
+    },
+    render(h) {
+      return h(
+        "a",
+        {
+          attrs: {
+            href: "#" + this.to,
+          },
+        },
+        this.$slots.default
+      );
+    },
+  });
+
+  Vue.component("router-view", {
+    render(h) {
+      let component = null;
+      // 获取当前路由对应的组件并将它渲染出来
+      const current = this.$router.current;
+      const route = this.$router.$options.routes.find(
+        (route) => route.path === current
+      );
+
+      if (route) {
+        component = route.component;
+      }
+
+      return h(component);
+    },
+  });
+};
+
+export default VueRouter;
+
+```
+
 - 参考[1.1.3一步一步带你弄懂vue-router核心原理及实现](https://www.bilibili.com/video/BV14y4y1C7F2/?spm_id_from=333.999.0.0&vd_source=dbd4e06376cfe7144e0331f427521399)
 
 # vue-router守卫流程
@@ -5010,5 +5174,114 @@ async function uploadPiece() {
     - 静态变量只能被静态方法调用
     - 只有定义该私有静态字段的类能访问该字段
     - 注意this，内部不能直接this使用
+
+
+# drag拖拽
+
+- 要实现一个拖拽，最简单的也需要三个事件的监听，分别是dragstart、dragover、drop。其中dragover 和 drop 事件是需要阻止浏览器默认行为
+## 前提
+在HTML5标准中，为了使元素可拖动，把draggable属性设置为true。文本、图片和链接是默认可以拖放的，它们的draggable属性自动被设置成了true。图片和链接按住鼠标左键选中，就可以拖放。文本只有在被选中的情况下才能拖放。如果显示设置文本的draggable属性为true，按住鼠标左键也可以直接拖放。
+
+draggable属性：设置元素是否可拖动。语法：```<element draggable="true | false | auto" >```
+
+- true: 可以拖动  
+- false: 禁止拖动  
+- auto: 跟随浏览器定义是否可以拖动
+
+## 事件
+
+ 1. **`dragstart`**
+
+- **触发时机**：拖拽开始时
+- **描述**：在拖拽操作开始时触发，用于设置拖拽数据和样式。
+- **事件对象属性**：`event.dataTransfer` 用于设置拖拽数据。
+
+```javascript
+element.addEventListener('dragstart', (event) => {
+  // 设置拖拽的数据
+  event.dataTransfer.setData('text/plain', 'some data');
+});
+```
+
+### 2. **`drag`**
+
+- **触发时机**：拖拽过程中，每当拖拽元素移动时触发。
+- **描述**：在拖拽过程中不断触发，通常用于更新拖拽元素的样式。
+- **事件对象属性**：`event.clientX`, `event.clientY` 用于获取拖拽元素的位置。
+
+```javascript
+element.addEventListener('drag', (event) => {
+  // 处理拖拽过程中需要做的事情
+});
+```
+
+### 3. **`dragenter`**
+
+- **触发时机**：拖拽元素进入目标区域时触发。
+- **描述**：当拖拽元素进入一个可放置区域时触发，可以用于视觉提示。
+- **事件对象属性**：`event.target` 是拖拽元素进入的目标区域。
+
+```javascript
+element.addEventListener('dragenter', (event) => {
+  // 处理拖拽元素进入目标区域时的逻辑
+});
+```
+
+### 4. **`dragover`**
+
+- **触发时机**：拖拽元素在目标区域内移动时触发。
+- **描述**：必须阻止默认行为 (`event.preventDefault()`) 以允许放置操作。
+- **事件对象属性**：`event.clientX`, `event.clientY` 用于获取拖拽元素的位置。
+
+```javascript
+element.addEventListener('dragover', (event) => {
+  event.preventDefault(); // 允许放置
+});
+```
+
+### 5. **`dragleave`**
+
+- **触发时机**：拖拽元素离开目标区域时触发。
+- **描述**：当拖拽元素离开目标区域时触发，用于取消视觉提示。
+- **事件对象属性**：`event.target` 是拖拽元素离开的目标区域。
+
+```javascript
+element.addEventListener('dragleave', (event) => {
+  // 处理拖拽元素离开目标区域时的逻辑
+});
+```
+
+### 6. **`drop`**
+
+- **触发时机**：拖拽元素放置在目标区域时触发。
+- **描述**：在拖拽元素放置在目标区域时触发，用于处理放置操作。
+- **事件对象属性**：`event.dataTransfer` 用于获取拖拽数据。
+
+```javascript
+element.addEventListener('drop', (event) => {
+  event.preventDefault(); // 防止浏览器默认行为
+  const data = event.dataTransfer.getData('text/plain');
+  // 处理拖拽放置的数据
+});
+```
+
+### 7. **`dragend`**
+
+- **触发时机**：拖拽操作结束时触发，无论拖拽操作成功还是取消。
+- **描述**：在拖拽操作结束时触发，用于清理拖拽效果。
+- **事件对象属性**：`event.target` 是拖拽的元素。
+
+```javascript
+element.addEventListener('dragend', (event) => {
+  // 清理拖拽效果
+});
+```
+
+## DataTransfer对象(太多了,还没细看，todo)
+- file
+- types
+
+参考：
+- [HTML5原生拖拽/拖放 Drag & Drop 详解](https://juejin.cn/post/6844903513491767303)
 
 
