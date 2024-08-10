@@ -2740,19 +2740,19 @@ section.with-unset{
 - event：子组件通过 $emit 向父组件发送事件，父组件通过监听这些事件来执行操作。
 - style 和 class：父组件可以通过绑定 style 和 class 属性向子组件传递样式，Vue 会自动合并这些样式。
 - attribute：父组件可以通过普通属性向子组件传递数据。
-- native 修饰符：在父组件中使用 v-on 绑定子组件的原生事件时，使用 .native 修饰符。
-- $listeners：子组件可以通过 $listeners 对象访问父组件传递的所有事件监听器。
+- native 修饰符：在父组件中使用 v-on 绑定子组件的原生事件时，使用 .native 修饰符。（感觉不太算）
+- $listeners：子组件可以通过 $listeners 对象访问父组件传递的所有事件监听器。（vue3弃用）
 - v-model：用于实现双向绑定，父组件和子组件共享一个数据模型。
-- sync 修饰符：简化父组件向子组件传递数据的过程，并允许子组件直接修改父组件的数据。
-- $parent 和 $children：子组件可以通过 $parent 访问父组件实例，父组件可以通过 $children 访问子组件实例。
+- sync 修饰符：简化父组件向子组件传递数据的过程，并允许子组件直接修改父组件的数据。（vue3废弃）
+- $parent 和 $children：子组件可以通过 $parent 访问父组件实例，父组件可以通过 $children 访问子组件实例。（vue3废弃$children，用expose / ref 替代）
 - $slots 和 $scopedSlots：用于父组件向子组件传递插槽内容。
 - ref：用于访问组件实例或 DOM 元素。
 ## 跨组件通信
 - Provide 和 Inject：用于祖先组件向后代组件传递数据，适用于深层嵌套的组件结构。
 - router：使用 Vue Router 实现组件间的导航和参数传递。
-- vuex：使用 Vuex 进行全局状态管理，实现跨组件的数据共享和状态管理。
+- vuex：使用 Vuex 进行全局状态管理，实现跨组件的数据共享和状态管理（vue3 也可用pinia）。
 - store 模式：通过将状态存储在全局对象中，实现组件间的数据共享，就是普通的js暴露对象，然后组件中变成响应式使用而已，但是大家都可以改，很难跟踪是谁改变了状态
-- eventbus：通过事件总线实现非父子关系组件间的通信。
+- eventbus：通过事件总线实现非父子关系组件间的通信。（vue3没了，推荐第三方的mitt库）
 
 # VUE的MVVM实现原理
 这部分我不打算写很详细，具体的还是要靠自己去看文章和视频或源码自己总结。
@@ -3033,6 +3033,23 @@ export default {Store,install}
 
 # vue-router 原理实现
 
+## 原理
+### hash实现：
+触发hashchange 事件：
+- 浏览器前进后退改变 URL，
+- 通过<a>标签改变 URL，
+- 通过window.location改变URL
+### history实现：
+触发 popstate 事件（当活动历史记录条目更改时，将触发popstate事件）：
+- 户点击浏览器的回退按钮（调用history.back()或者history.forward()方法）
+- pushState/replaceState或<a>标签改变 URL 不会触发 popstate 事件，所以我们可以在方法内进行手动触发页面渲染（至于a标签不需要，因为本身就会触发页面更新，或者监听a的click 也可以进行自定义处理）
+
+不过这种模式要玩好，还需要后台配置支持（将所有请求打回给前端自己处理）。因为我们的应用是个单页客户端应用，如果后台没有正确的配置，当用户在浏览器直接访问 http://oursite.com/user/id 就会返回 404，这就不好看了。
+
+兼容性：hash最低兼容到ie8;history最低只能兼容到ie10
+
+## 实现（hash模式）
+
 ```js
 let Vue; // 保存Vue的构造函数，在插件中要使用
 
@@ -3108,8 +3125,10 @@ VueRouter.install = (_Vue) => {
 export default VueRouter;
 
 ```
+参考
+- [1.1.3一步一步带你弄懂vue-router核心原理及实现](https://www.bilibili.com/video/BV14y4y1C7F2/?spm_id_from=333.999.0.0&vd_source=dbd4e06376cfe7144e0331f427521399)
+- [深度剖析：前端路由原理](https://juejin.cn/post/6844903906024095751)
 
-- 参考[1.1.3一步一步带你弄懂vue-router核心原理及实现](https://www.bilibili.com/video/BV14y4y1C7F2/?spm_id_from=333.999.0.0&vd_source=dbd4e06376cfe7144e0331f427521399)
 
 # vue-router守卫流程
 
@@ -5283,5 +5302,11 @@ element.addEventListener('dragend', (event) => {
 
 参考：
 - [HTML5原生拖拽/拖放 Drag & Drop 详解](https://juejin.cn/post/6844903513491767303)
+
+# vue name的作用
+- 作为组件的标识，可以在vue-devtools中看到
+- 作为递归组件的名字
+- 作为动态组件的名字
+- 作为keep-alive的名字
 
 

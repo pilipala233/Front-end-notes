@@ -1,102 +1,58 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HTML5 Drag and Drop Example</title>
-  <style>
-    .draggable-box {
-      width: 200px;
-      height: 200px;
-      background-color: lightblue;
-      cursor: move;
-      position: absolute;
-      top: 50px;
-      left: 50px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vue 3 watch Example</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
 </head>
 <body>
+    <div id="app">
+        <h1>Vue 3 watch Example</h1>
+        <p>User Name: {{ state.user.name }}</p>
+        <p>Is Logged In: {{ state.isLoggedIn }}</p>
 
-<div id="draggable" class="draggable-box" draggable="true">
-  Drag me around!
-</div>
+        <button @click="changeName">Change Name</button>
+        <button @click="toggleLogin">Toggle Login Status</button>
+    </div>
 
-<script>
-let Vue; // 保存Vue的构造函数，在插件中要使用
+    <script>
+        const { createApp, reactive, watch } = Vue;
 
-class VueRouter {
-  constructor(options) {
-    this.$options = options;
+        createApp({
+            setup() {
+                // 创建响应式对象
+                const state = reactive({
+                    user: {
+                        name: 'John',
+                        age: 30
+                    },
+                    isLoggedIn: false
+                });
 
-    // 把this.current变为响应式的数据
-    // 将来数据一旦发生变化，router-view的render函数就能重新执行
-    let initial = window.location.hash.slice(1) || "/";
-    Vue.util.defineReactive(this, "current", initial);
-    
-    // 监听hashchange事件
-    window.addEventListener("hashchange", () => {
-      this.current = window.location.hash.slice(1);
-      console.log("hashchange", this.current);
-    });
-  }
-}
+                // 监听整个 reactive 对象的变化
+                watch(()=>state.isLoggedIn, (newState, oldState) => {
+                    console.log('State changed:');
+                    console.log('New State:', newState);
+                    console.log('Old State:', oldState);
+                }, { deep: true });
 
-// 插件的install方法
-VueRouter.install = (_Vue) => {
-  Vue = _Vue;
+                // 修改 state 的方法
+                const changeName = () => {
+                    state.user.name = state.user.name === 'John' ? 'Jane' : 'John';
+                };
 
-  // 1. 挂载$router属性
-  Vue.mixin({
-    beforeCreate() {
-      if (this.$options.router) {
-        Vue.prototype.$router = this.$options.router;
-      }
-    },
-  });
+                const toggleLogin = () => {
+                    state.isLoggedIn = !state.isLoggedIn;
+                };
 
-  // 2. 实现两个组件: router-link, router-view
-  Vue.component("router-link", {
-    props: {
-      to: {
-        type: String,
-        required: true,
-      },
-    },
-    render(h) {
-      return h(
-        "a",
-        {
-          attrs: {
-            href: "#" + this.to,
-          },
-        },
-        this.$slots.default
-      );
-    },
-  });
-
-  Vue.component("router-view", {
-    render(h) {
-      let component = null;
-      // 获取当前路由对应的组件并将它渲染出来
-      const current = this.$router.current;
-      const route = this.$router.$options.routes.find(
-        (route) => route.path === current
-      );
-
-      if (route) {
-        component = route.component;
-      }
-
-      return h(component);
-    },
-  });
-};
-
-export default VueRouter;
-
-</script>
-
+                return {
+                    state,
+                    changeName,
+                    toggleLogin
+                };
+            }
+        }).mount('#app');
+    </script>
 </body>
 </html>
