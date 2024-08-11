@@ -2,57 +2,81 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vue 3 watch Example</title>
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <title>Parent Page</title>
+    <!-- <link rel="stylesheet" href="style.css"> -->
+  
 </head>
-<body>
-    <div id="app">
-        <h1>Vue 3 watch Example</h1>
-        <p>User Name: {{ state.user.name }}</p>
-        <p>Is Logged In: {{ state.isLoggedIn }}</p>
+<style>
+    @import url('https://fonts1111.googleapis.com/css2?family=Roboto:wght@300&display=swap');
 
-        <button @click="changeName">Change Name</button>
-        <button @click="toggleLogin">Toggle Login Status</button>
-    </div>
 
-    <script>
-        const { createApp, reactive, watch } = Vue;
+</style>
+<style>
+        .container {
+        background-image: url("ss.png");
+    }
+</style>
+<style>
+/* fonts.css */
+@font-face {
+  font-family: MyHelvetica;
+  src: local("Helvetica Neue Bold111"), local("HelveticaNeue-Bold"),
+    url(MgOpenModernaBold.ttf);
+  font-weight: bold;
+}
 
-        createApp({
-            setup() {
-                // 创建响应式对象
-                const state = reactive({
-                    user: {
-                        name: 'John',
-                        age: 30
-                    },
-                    isLoggedIn: false
-                });
 
-                // 监听整个 reactive 对象的变化
-                watch(()=>state.isLoggedIn, (newState, oldState) => {
-                    console.log('State changed:');
-                    console.log('New State:', newState);
-                    console.log('Old State:', oldState);
-                }, { deep: true });
+</style>
+<body class="container"  >
+    <div id="parent">
+        Parent div
+        <button id="child">Click me</button>
+      </div>
+      
+      <script>
+// 父容器上的事件处理程序
+document.getElementById('parent').addEventListener('click', function() {
+    console.log('Parent clicked');
+});
+// 按钮上的事件处理程序 2
+document.getElementById('child').addEventListener('click', function(event) {
+    console.log('Child click handler 2');
+});
+// 按钮上的事件处理程序 1
+document.getElementById('child').addEventListener('click', function(event) {
+    console.log('Child click handler 1');
+    event.stopImmediatePropagation(); // 完全阻止事件传播
+});
 
-                // 修改 state 的方法
-                const changeName = () => {
-                    state.user.name = state.user.name === 'John' ? 'Jane' : 'John';
-                };
 
-                const toggleLogin = () => {
-                    state.isLoggedIn = !state.isLoggedIn;
-                };
 
-                return {
-                    state,
-                    changeName,
-                    toggleLogin
-                };
-            }
-        }).mount('#app');
-    </script>
-</body>
+// 在页面加载时运行
+window.onload = function() {
+    document.getElementById('child').click(); // 模拟点击按钮
+};
+
+    </script> 
+    <!-- <audio src="ss.mp3" controls></audio>
+    <video controls width="250" height="200" muted>
+        <source src="/media/cc0-videos/flower.webm" type="video/webm" />
+        <source src="/media/cc0-videos/flower.mp4" type="video/mp4" />
+        Download the
+        <a href="/media/cc0-videos/flower.webm">WEBM</a>
+        or
+        <a href="/media/cc0-videos/flower.mp4">MP4</a>
+        video.
+      </video>
+      <video controls src="/media/cc0-videos/friday.mp4">
+        <track default kind="captions" srclang="en" src="/media/examples/friday.vtt" />
+        Download the
+        <a href="/media/cc0-videos/friday.mp4">MP4</a>
+        video, and
+        <a href="/media/examples/friday.vtt">subtitles</a>.
+      </video>
+    <input type="file" src="ss.mp3" type="audio/mpeg">
+    <iframe src="./iframe.html" frameborder="0" ></iframe>
+    <img src="ss.png" alt=""> -->
+
+</body>  
+<!-- <script src="./index11.html"></script> -->
 </html>

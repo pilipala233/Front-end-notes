@@ -1359,6 +1359,8 @@ window.addEventListener('scroll', function(event) {
 ```js
 //阻止事件冒泡
 event.stopPropagation();
+//阻止事件冒泡（包括当前元素的其他监听）
+stopImmediatePropagation()（写在后面的会被阻止）
 
 //阻止默认行为
 event.preventDefault();
@@ -4674,7 +4676,145 @@ function objectFactory() {
 ```
 # JS DOM变化的监听检测(todo)
 
-# 前端的异常处理(todo)
+# 前端的异常处理
+## 前置
+- 语法错误无法开发人员捕获
+- 针对iframe的加载,window.onerror、window.addEventListener等等都没用
+- 下面提到的的【资源加载】仅局限于link、 script、img、input、audio、source 、track标签元素 src 属性的加载,css中的@import（常见的也就这几种了吧）
+- style 里面的 background-image 也是无法捕获的
+- new Image 也是无法捕获的,但是可以通过onload和onerror来判断是否加载成功
+- @font-face 加载不了不会抛出错误
+- 类似VUE和React的框架，他们都有自己的错误处理机制，比如VUE的errorHandler，React的errorBoundary
+##  方案
+- try...catch仅同步，无法捕获语法错误、异步操作以及未处理的 Promise 错误（指没有catch的）
+- window.onerror：可以捕获同步、异步错误，但是无法捕获语法错误、资源加载错误以及未处理的 Promise 错误，如果不想继续往上传递，需要返回true
+- window.addEventListener('error')：可以捕获同步、异步错误，资源加载错误但是无法捕获语法错误以及未处理的 Promise 错误（注意书写顺序，最好写在最上面）
+- window.addEventListener('unhandledrejection')：只捕获没有 Catch 的 Promise 异常
+测试代码如下
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Parent Page</title>
+    <!-- <link rel="stylesheet" href="style.css"> -->
+  
+</head>
+<style>
+    @import url('https://fonts1111.googleapis.com/css2?family=Roboto:wght@300&display=swap');
+
+
+</style>
+<style>
+        .container {
+        background-image: url("ss.png");
+    }
+</style>
+<style>
+/* fonts.css */
+@font-face {
+  font-family: MyHelvetica;
+  src: local("Helvetica Neue Bold111"), local("HelveticaNeue-Bold"),
+    url(MgOpenModernaBold.ttf);
+  font-weight: bold;
+}
+
+
+</style>
+<body class="container"  >
+<div style="background-image: url("ss1.png")"></div>
+      <script>
+        window.addEventListener("error", function (event) {
+            console.log('捕获到异常：', event.srcElement);
+            return true;
+        }, true);
+        window.onerror = function (message, source, lineno, colno, error) {
+            console.log('捕获到异常：', message, source, lineno, colno, error);
+            return true;
+        };
+        const img = new Image();
+img.src = 'path/to/image.jpg';
+
+// img.onerror = function(event) {
+//     console.log('Image failed to load:', event);
+// };
+// img.onload = function(event) {
+//     console.log('Image loaded successfully:', event);
+// };
+function loadImage(url) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+
+        img.onload = function() {
+            resolve(img);
+        };
+
+        img.onerror = function(event) {
+            reject(new Error('Image failed to load: ' + url));
+        };
+
+        img.src = url;
+    });
+}
+
+// 使用示例
+loadImage('path/to/image.jpg')
+    .then(img => {
+        console.log('Image loaded successfully:', img);
+    })
+    .catch(error => {
+        console.error('Error loading image:', error);
+    });
+
+    </script> 
+    <!-- <audio src="ss.mp3" controls></audio>
+    <video controls width="250" height="200" muted>
+        <source src="/media/cc0-videos/flower.webm" type="video/webm" />
+        <source src="/media/cc0-videos/flower.mp4" type="video/mp4" />
+        Download the
+        <a href="/media/cc0-videos/flower.webm">WEBM</a>
+        or
+        <a href="/media/cc0-videos/flower.mp4">MP4</a>
+        video.
+      </video>
+      <video controls src="/media/cc0-videos/friday.mp4">
+        <track default kind="captions" srclang="en" src="/media/examples/friday.vtt" />
+        Download the
+        <a href="/media/cc0-videos/friday.mp4">MP4</a>
+        video, and
+        <a href="/media/examples/friday.vtt">subtitles</a>.
+      </video>
+    <input type="file" src="ss.mp3" type="audio/mpeg">
+    <iframe src="./iframe.html" frameborder="0" ></iframe>
+    <img src="ss.png" alt=""> -->
+
+</body>  
+<!-- <script src="./index11.html"></script> -->
+</html>
+
+
+```
+
+## 最佳实践
+- 对于可预测的使用 try...catch
+- 对于promise的使用优先使用自带的catch
+- 对于iframe可以提前测试src是否可达
+- 对于不可预测的使用 window.addEventListener('error') 和 window.addEventListener('unhandledrejection')
+
+## 错误上报
+- 通过img标签的src属性发送get请求(常见)
+- 通过navigator.sendBeacon()发送post请求(常见)
+- 通过XMLHttpRequest发送post请求(常见)
+- 通过fetch发送post请求
+- 通过WebSocket发送post请求
+## 针对压缩后的代码的错误上报（toco）
+- 通过sourceMap解析
+
+
+参考：
+- [前端异常监控](https://www.cnblogs.com/thyshare/p/12771764.html#catch4)
+- [什么？原来前端错误上报这么简单！！](https://mp.weixin.qq.com/s/-5h-ibshx8s0nF-VkLIANw)
+- [SourceMap 与前端异常监控](https://mp.weixin.qq.com/s/OyxDQXQ2WRYgTA08nbQxWQ)
 
 # 原型链查找(todo)
 - in
@@ -5308,5 +5448,33 @@ element.addEventListener('dragend', (event) => {
 - 作为递归组件的名字
 - 作为动态组件的名字
 - 作为keep-alive的名字
+
+# 跨页面通信
+
+### 跨页面通信方法
+- **`postMessage`**: 跨窗口、标签页或 iframe 的安全消息传递（支持同源和跨域）。
+- **Shared Worker**: 允许多个页面共享同一个 Worker 实例进行通信。
+- **Broadcast Channel API**: 同源页面或 iframe 之间的消息广播。
+- **LocalStorage + `storage` 事件**: 同源页面之间的数据共享和事件通知。
+- **IndexedDB**: 跨页面存储和共享复杂数据。
+- **Service Worker**: 后台任务处理和页面与 Service Worker 之间的通信。
+- **Window.name**: 跨页面导航时持久化数据传递（包括跨域）。
+- **Cookie**: 同域页面间共享小型数据。
+- **`window.opener`**: 父页面与通过 `window.open` 打开的子页面之间的通信（同源）。
+
+### 跨 iframe 通信方法
+- **`postMessage`**: 跨 iframe 通信的标准方法（推荐，支持跨域）。
+- **Shared Worker**: 允许多个 iframe 共享同一个 Worker 实例。
+- **Broadcast Channel API**: 同源的多个 iframe 之间广播消息。
+- **父子页面直接访问**: 同源情况下，直接访问和操作 iframe 的内容。
+- **URL Hash + `onhashchange` 事件**: 通过修改 URL 的 hash 部分传递简单信息。
+- LocalStorage：（同源）
+- cookie:(同源)
+
+# js 沙盒（todo）
+
+# 自定义事件
+
+
 
 
