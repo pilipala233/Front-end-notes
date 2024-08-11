@@ -2642,7 +2642,7 @@ $\textcolor{red}{说得太浅了，浅到不知道怎么做笔记，有时间再
  - VPN 使用到了IPsec 和 SSL/TLS,一般客户端到站点类型就是使用SSL/TLS,IPsec 两个都可以，多数是用在站点到站点
  - 防范ARP攻击（因为核心是加密，访问https的网页也不需要担心）
  
-# 类型转换
+# 类型转换（并不算正确，是拿来应付一般面试真题的快速手册）
 
 ## 对象到原始值的转换
 - 当尝试将对象转换为原始值时：
@@ -2673,7 +2673,8 @@ $\textcolor{red}{说得太浅了，浅到不知道怎么做笔记，有时间再
 - 空字符串（包括只含空白字符的字符串）: `0`
 - 字符串: 去除引号后，如果内容是数字则转换为该数字，否则为 `NaN`
 
-
+参考：
+- [渡一教育]()
 
 # 运算规则
 # css属性值的计算过程
@@ -4583,6 +4584,14 @@ URL越权查看
 
 # AMD、CMD、CJS、ES模块化(todo)
 
+# 字符串转数字
+- parseInt(string, radix)：将字符串转换为整数，radix 表示进制，默认为 10。尽可能多的解析字符串，直到遇到非数字字符。
+- parseFloat(string)：将字符串转换为浮点数。尽可能多的解析字符串，直到遇到非数字字符。
+- Number(string)：将字符串转换为数字，如果字符串中包含非数字字符，则返回 NaN。
+- ~~string：将字符串转换为整数，只取整数部分，相当于 parseInt(string, 10) 的简写,不能包含非法字符串。
+- +string：将字符串转换为数字，相当于 Number(string) 的简写，不能包含非法字符串。
+- string | 0：将字符串转换为整数，相当于 parseInt(string, 10) 的简写，不能包含非法字符串。
+
 # 字符串裁剪
 - slice(beginIndex[, endIndex]) 
   - 負數的情況下都是長度-index，結果還是負數的話直接當作0
@@ -5473,8 +5482,94 @@ element.addEventListener('dragend', (event) => {
 
 # js 沙盒（todo）
 
-# 自定义事件
+# 自定义事件(TODO)
 
+# js 获取原型的方法
+
+- p.\_\_proto\_\_
+- p.constructor.prototype
+- Object.getPrototypeOf(p)
+
+# isNaN 和 Number.isNaN 函数的区别？
+
+函数 isNaN 接收参数后，会尝试将这个参数转换为数值，任何不能被转换为数值的的值都会返回 true，因此非数字值传入也会
+返回 true ，会影响 NaN 的判断。
+函数 Number.isNaN 会首先判断传入参数是否为数字，如果是数字再继续判断是否为 NaN ，这种方法对于 NaN 的判断更为
+准确。
+
+# 内部属性 [[Class]] 是什么？
+
+```
+所有 typeof 返回值为 "object" 的对象（如数组）都包含一个内部属性 [[Class]]（我们可以把它看作一个内部的分类，而非
+传统的面向对象意义上的类）。这个属性无法直接访问，一般通过 Object.prototype.toString(..) 来查看。例如：
+Object.prototype.toString.call( [1,2,3] );
+// "[object Array]"
+Object.prototype.toString.call( /regex-literal/i );
+// "[object RegExp]"
+// 我们自己创建的类就不会有这份特殊待遇，因为 toString() 找不到 toStringTag 属性时只好返回默认的 Object 标签
+// 默认情况类的[[Class]]返回[object Object]
+class Class1 {}
+Object.prototype.toString.call(new Class1()); // "[object Object]"
+// 需要定制[[Class]]
+class Class2 {
+  get [Symbol.toStringTag]() {
+    return "Class2";
+  }
+}
+Object.prototype.toString.call(new Class2()); // "[object Class2]"
+```
+
+# 实现一个模块加载器(todo)
+参考：
+- [《JS 模块加载器加载原理是怎么样的？》](https://www.zhihu.com/question/21157540)
+
+  
+#  Object.is() 与原来的比较操作符 “===”、“==” 的区别？
+- 使用双等号进行相等判断时，如果两边的类型不一致，则会进行强制类型转化后再进行比较。
+- 使用三等号进行相等判断时，如果两边的类型不一致时，不会做强制类型准换，直接返回 false。
+- 使用 Object.is 来进行相等判断时，一般情况下和三等号的判断相同，它处理了一些特殊的情况，比如 -0 和 +0 不再相等，两个 NaN 认定为是相等的。
+
+# CJS模块引入的查找方式
+
+当 Node 遇到 `require(X)` 时，按下面的顺序处理：
+
+1. 如果 `X` 是内置模块（比如 `require('http')`）
+   - 返回该模块。
+   - 不再继续执行。
+
+2. 如果 `X` 以 `"./"` 或者 `"/"` 或者 `"../"` 开头
+   - 根据 `X` 所在的父模块，确定 `X` 的绝对路径。
+   - 将 `X` 当成文件，依次查找下面文件，只要其中有一个存在，就返回该文件，不再继续执行。
+
+     ```
+     X
+     X.js
+     X.json
+     X.node
+     ```
+   - 将 `X` 当成目录，依次查找下面文件，只要其中有一个存在，就返回该文件，不再继续执行。
+
+     ```
+     X/package.json（main字段）
+     X/index.js
+     X/index.json
+     X/index.node
+     ```
+
+3. 如果 `X` 不带路径
+   - 根据 `X` 所在的父模块，确定 `X` 可能的安装目录。
+   - 依次在每个目录中，将 `X` 当成文件名或目录名加载（先会去当前js文件所在的目录下找node_modules文件夹,当前目录没有，会去当前执行的文件的父目录里面寻找）。
+
+4. 抛出 `"not found"`
+
+
+参考：
+
+- [require() 源码解读](https://www.ruanyifeng.com/blog/2015/05/require.html)
+
+
+
+# js倒计时纠偏（todo）
 
 
 
