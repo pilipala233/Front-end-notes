@@ -2,95 +2,50 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Parent Page</title>
-    <!-- <link rel="stylesheet" href="style.css"> -->
-  
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Element Visibility Check</title>
+    <style>
+        .target {
+            height: 200px;
+            background-color: lightcoral;
+            margin: 110vh 0; /* Ensure the element is out of view initially */
+        }
+    </style>
 </head>
-<style>
-    @import url('https://fonts1111.googleapis.com/css2?family=Roboto:wght@300&display=swap');
+<body>
+
+<div class="target" id="target"></div>
+
+<script>
+    function isElementInViewport(el) {
+    debugger    // viewPortHeight 兼容所有浏览器写法
+    const viewPortHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight 
+    const offsetTop = el.offsetTop
+    const scrollTop = document.documentElement.scrollTop
+    const top = offsetTop - scrollTop
+    return top <= viewPortHeight&&top>=0
 
 
-</style>
-<style>
-        .container {
-        background-image: url("ss.png");
+
     }
-</style>
-<style>
-/* fonts.css */
-@font-face {
-  font-family: MyHelvetica;
-  src: local("Helvetica Neue Bold111"), local("HelveticaNeue-Bold"),
-    url(MgOpenModernaBold.ttf);
-  font-weight: bold;
-}
 
+    const target = document.getElementById('target');
 
-</style>
-<body class="container"  >
-    <div id="parent">
-        Parent div
-        <button id="child">Click me</button>
-      </div>
-      
-      <script>
+    window.addEventListener('scroll', () => {
+        if (isElementInViewport(target)) {
+            console.log('Element is in view!');
+        } else {
+            console.log('Element is out of view!');
+        }
+    });
 
-setInterval(function(){ 
-  let j = 0
-  while(j++ < 100000000){
-    
-  }
-}, 0)
+    // Initial check
+    if (isElementInViewport(target)) {
+        console.log('Element is initially in view!');
+    } else {
+        console.log('Element is initially out of view!');
+    }
+</script>
 
-
-
-const interval = 1000
-let ms = 50000  // 从服务器和活动开始时间计算出的时间差，这里测试用 50000 ms
-let count = 0
-const startTime = new Date().getTime()
-let timeCounter
-if( ms >= 0) {
-  timeCounter = setTimeout(countDownStart, interval)
-}
- 
-function countDownStart () {
-   count++
-   const offset = new Date().getTime() - (startTime + count * interval) // A
-   let nextTime = interval - offset
-   if (nextTime < 0) { 
-       nextTime = 0 
-   }
-   ms -= interval
-   console.log(`误差：${offset} ms，下一次执行：${nextTime} ms 后，离活动开始还有：${ms} ms`)
-   if (ms < 0) {
-     clearTimeout(timeCounter)
-   } else {
-     timeCounter = setTimeout(countDownStart, nextTime)
-   }
- }
-
-    </script> 
-    <!-- <audio src="ss.mp3" controls></audio>
-    <video controls width="250" height="200" muted>
-        <source src="/media/cc0-videos/flower.webm" type="video/webm" />
-        <source src="/media/cc0-videos/flower.mp4" type="video/mp4" />
-        Download the
-        <a href="/media/cc0-videos/flower.webm">WEBM</a>
-        or
-        <a href="/media/cc0-videos/flower.mp4">MP4</a>
-        video.
-      </video>
-      <video controls src="/media/cc0-videos/friday.mp4">
-        <track default kind="captions" srclang="en" src="/media/examples/friday.vtt" />
-        Download the
-        <a href="/media/cc0-videos/friday.mp4">MP4</a>
-        video, and
-        <a href="/media/examples/friday.vtt">subtitles</a>.
-      </video>
-    <input type="file" src="ss.mp3" type="audio/mpeg">
-    <iframe src="./iframe.html" frameborder="0" ></iframe>
-    <img src="ss.png" alt=""> -->
-
-</body>  
-<!-- <script src="./index11.html"></script> -->
+</body>
 </html>

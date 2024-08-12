@@ -4825,11 +4825,6 @@ loadImage('path/to/image.jpg')
 - [什么？原来前端错误上报这么简单！！](https://mp.weixin.qq.com/s/-5h-ibshx8s0nF-VkLIANw)
 - [SourceMap 与前端异常监控](https://mp.weixin.qq.com/s/OyxDQXQ2WRYgTA08nbQxWQ)
 
-# 原型链查找(todo)
-- in
-- hasOwnProperty
-- __proto__
-- instanceof
 
 
 # 浏览器的缓存机制(todo)
@@ -4944,7 +4939,7 @@ Array.prototype.reduce.call(arrayLike, (acc, val) => { acc.push(val); return acc
 
 # Web Worker(TODO)
 
-# 浏览器的缓存策略(TODO)
+
 
 # 对象的深浅拷贝
 - Object.assign()：只能实现一维对象的深拷贝
@@ -5091,10 +5086,156 @@ setTimeout(stopInterval, 5000); // 5秒后停止定时器
 
 ```
 
-# 判断数组的方法(TODO)
-# 判断对象的方法(TODO)
+# 判断数组的方法
+- Array.isArray()
+- instanceof Array
+- Object.prototype.toString.call(arr) === '[object Array]'
+- arr.constructor === Array
+- arr.\_\_proto\_\_ === Array.prototype
+- Array.prototype.isPrototypeOf(arr)
+
+# 判断对象的方法
+这里只说一般的普通对象，不包括函数、数组、正则以及Object.create(null)等
+- Object.prototype.toString.call(obj) === '[object Object]'
+- typeof obj === 'object'
+- obj instanceof Object
+- Object.prototype.isPrototypeOf(obj)
+
+
 # 国际化(TODO)
-# 图片懒加载(TODO)
+
+# 判断元素是否在可视区域
+- getBoundingClientRect()
+```js
+function isInViewport(el) {
+  const rect = el.getBoundingClientRect();
+  return (
+    rect.top >= 0 &&
+    rect.left >= 0 &&
+    rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+    rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+  );
+}
+```
+
+- IntersectionObserver API
+```js
+var observer = new IntersectionObserver(function(entries) {
+  entries.forEach(function(entry) {
+    if (entry.isIntersecting) {
+      // 元素进入视口
+      console.log("Element is in viewport!");
+    } else {
+      // 元素离开视口
+      console.log("Element is out of viewport!");
+    }
+  });
+});
+
+var target = document.querySelector('#targetElement');
+observer.observe(target);
+
+
+```
+- offsetTop + scrollTop
+下面的实现没考虑 offsetParent 的情况，如果元素的 offsetParent 不是 body，需要递归计算 offsetTop；x轴也没判断
+```js
+    const viewPortHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight 
+    const offsetTop = el.offsetTop
+    const scrollTop = document.documentElement.scrollTop
+    const top = offsetTop - scrollTop
+    return top <= viewPortHeight&&top>=0
+```
+
+# 图片懒加载
+
+## 1. 使用原生 `loading` 属性
+
+HTML5 为 `<img>` 元素引入了 `loading` 属性，可以非常简单地实现懒加载。
+
+```html
+<img src="image.jpg" alt="Lazy Load Example" loading="lazy">
+```
+
+
+## 2. 使用 `IntersectionObserver` API
+
+`IntersectionObserver` 允许检测元素是否进入视口，并在元素接近视口时加载图片。
+
+```javascript
+document.addEventListener("DOMContentLoaded", function() {
+    const lazyImages = document.querySelectorAll("img.lazy");
+
+    const lazyLoad = () => {
+        const observer = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    img.src = img.dataset.src;  // 将 `data-src` 的值赋给 `src`
+                    img.onload = () => {
+                        img.classList.remove("lazy"); // 仅用于测试或调试，加载完成后可以移除类
+                    };
+                    observer.unobserve(img);  // 停止观察
+                }
+            });
+        });
+
+        lazyImages.forEach(image => {
+            observer.observe(image);
+        });
+    };
+
+    lazyLoad();
+});
+
+```
+
+### HTML
+
+```html
+ <img data-src="https://via.placeholder.com/600x300" alt="Placeholder Image 3" class="lazy">
+```
+
+
+## 3. 使用第三方库
+
+可以使用一些流行的懒加载库，如 [lazysizes](https://github.com/aFarkas/lazysizes) 或 [Lozad.js](https://apoorv.pro/lozad.js/)。
+
+### lazysizes 示例
+
+```html
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lazysizes/5.2.0/lazysizes.min.js" async></script>
+
+<img data-src="image.jpg" class="lazyload" alt="Lazy Load Example">
+```
+
+
+
+## 4. 手动懒加载
+
+对于简单的懒加载实现，可以使用 `scroll` 事件监听器，检测图片是否进入视口，并手动加载图片。
+
+```javascript
+window.addEventListener("scroll", function() {
+  const lazyImages = document.querySelectorAll("img.lazy");
+  
+  lazyImages.forEach(img => {
+    if (img.getBoundingClientRect().top < window.innerHeight) {
+      img.src = img.dataset.src;
+      img.classList.remove("lazy");
+    }
+  });
+});
+```
+
+### HTML
+
+```html
+<img data-src="image.jpg" alt="Lazy Load Example" class="lazy">
+```
+
+
+
 # DOM元素监听(TODO)
 # 浏览器的 5 种 Observer
 - MutationObserver：用于检测 DOM 结构和属性的变化，如节点的添加、删除、属性的修改等。它不关心元素的尺寸或布局变化
@@ -5521,6 +5662,7 @@ Object.prototype.toString.call(new Class2()); // "[object Class2]"
 
 # 实现一个模块加载器(todo)
 参考：
+- [深入Node.js的模块加载机制，手写require函数](https://segmentfault.com/a/1190000023828613#item-3-3)
 - [《JS 模块加载器加载原理是怎么样的？》](https://www.zhihu.com/question/21157540)
 
   
@@ -5571,5 +5713,45 @@ Object.prototype.toString.call(new Class2()); // "[object Class2]"
 
 # js倒计时纠偏（todo）
 
+# 图片二倍图和三倍图切换
+- srcset 属性 适合在 <img> 元素上使用，自动为不同DPR加载合适的图片。
+```html
+<img 
+  src="image-1x.png" 
+  srcset="image-1x.png 1x, image-2x.png 2x, image-3x.png 3x" 
+  alt="Sample Image">
 
+```
+
+- <picture> 元素 适合更复杂的场景控制，允许使用多个媒体查询条件。
+```html
+<picture>
+  <source srcset="image-3x.png" media="(min-resolution: 3dppx)">
+  <source srcset="image-2x.png" media="(min-resolution: 2dppx)">
+  <img src="image-1x.png" alt="Sample Image">
+</picture>
+
+```
+- CSS媒体查询 适合处理背景图片，根据设备DPR动态切换。
+
+```css
+/* 默认 1x 图像 */
+.element {
+  background-image: url('image-1x.png');
+}
+
+/* 2x 图像 */
+@media (min-resolution: 2dppx) {
+  .element {
+    background-image: url('image-2x.png');
+}
+
+/* 3x 图像 */
+@media (min-resolution: 3dppx) {
+  .element {
+    background-image: url('image-3x.png');
+}
+
+
+```
 
