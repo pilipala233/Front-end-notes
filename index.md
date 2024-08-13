@@ -2359,7 +2359,7 @@ SSR的基本原理可以概括如下：
 ## 注意
 - 只能首屏ssr
 - 基本都是基于 vue-server-renderer 去实现的，所以文章中的深度也就只到这里了，暂时还没打算去剖析 vue-server-renderer 的源码
-
+- ssr需要将一个项目分别对客户端环境以及服务器环境进行打包，然后这时启用一台node 服务器进行请求处理，将请求交给打包好的服务器资源中的router处理(history模式，hash的话应该是不需要这一步)，匹配的话就返回静态html(里面包含了浏览器打包后的资源)，然后浏览器接收到html后，再去请求资源，这时候就是客户端渲染了
 
 参考：
 
@@ -2945,7 +2945,7 @@ Vite 在开发模式下表现出比 Webpack 更快的性能，主要是因为它
 
 
 
-# vuex 原理实现
+# vuex 原理实现(vue2版本)
 ## 前置
 - dispatch 用于action,commit 用于mutation
 - 理论上是先action(可以处理异步)再mutation,state 只被mutation修改
@@ -3034,7 +3034,7 @@ export default {Store,install}
 - 参考[1.1.4 vuex原理源码实现](https://www.bilibili.com/video/BV12k4y1C7mq/?spm_id_from=333.999.0.0&vd_source=dbd4e06376cfe7144e0331f427521399)
 
 
-# vue-router 原理实现
+# vue-router 原理实现(vue2版本)
 
 ## 原理
 ### hash实现：
@@ -3045,7 +3045,7 @@ export default {Store,install}
 ### history实现：
 触发 popstate 事件（当活动历史记录条目更改时，将触发popstate事件）：
 - 户点击浏览器的回退按钮（调用history.back()或者history.forward()方法）
-- pushState/replaceState或<a>标签改变 URL 不会触发 popstate 事件，所以我们可以在方法内进行手动触发页面渲染（至于a标签不需要，因为本身就会触发页面更新，或者监听a的click 也可以进行自定义处理）
+- pushState/replaceState或<a>标签改变 URL 不会触发 popstate 事件，所以我们可以在方法内进行手动触发页面渲染（至于a标签不需要，因为本身就会触发页面更新请求会打到服务器做响应，或者监听a的click 也可以进行自定义处理，我发现vue里面应该是这种，因为你会发现router-link标签都不会发起网络请求，F12可以看到有vue事件绑定了）
 
 不过这种模式要玩好，还需要后台配置支持（将所有请求打回给前端自己处理）。因为我们的应用是个单页客户端应用，如果后台没有正确的配置，当用户在浏览器直接访问 http://oursite.com/user/id 就会返回 404，这就不好看了。
 
@@ -5755,3 +5755,51 @@ Object.prototype.toString.call(new Class2()); // "[object Class2]"
 
 ```
 
+# router-view、keep-alive、transition以及component配合使用时的注意事项
+当需要缓存router-view的时候
+## vue2
+```html
+<transition>
+  <keep-alive>
+    <router-view>
+    </keep-alive>
+    </router-view>
+  </keep-alive>
+</transition>
+
+```
+## vue3
+```html
+<router-view v-slot="{ Component }">
+  <transition>
+    <keep-alive>
+      <component :is="Component" />
+    </keep-alive>
+  </transition>
+</router-view>
+```
+```html
+<RouterView v-slot="{ Component }">
+  <template v-if="Component">
+    <Transition mode="out-in">
+      <KeepAlive>
+        <Suspense>
+          <!-- 主要内容 -->
+          <component :is="Component"></component>
+
+          <!-- 加载中状态 -->
+          <template #fallback>
+            正在加载...
+          </template>
+        </Suspense>
+      </KeepAlive>
+    </Transition>
+  </template>
+</RouterView>
+```
+
+参考：
+- [vue-router4.x](https://router.vuejs.org/zh/guide/migration/#-router-view-%E3%80%81-keep-alive-%E5%92%8C-transition-)
+- [vue-router3.x](https://v3.router.vuejs.org/zh/api/#aria-current-value)
+- [vue3](https://cn.vuejs.org/guide/built-ins/suspense.html)
+- [vue2](https://v2.cn.vuejs.org/v2/api/#keep-alive)
