@@ -5997,4 +5997,13 @@ div {
 - [基于CSS3-perspective的视差滚动](https://juejin.cn/post/6947634489740754981?from=search-suggest)
 - [面试官问我视差滚动怎么实现？我懵了](https://juejin.cn/post/7248242792283422776?from=search-suggest)
 
-# 单点登录（TODO）
+# 单点登录
+- 只讨论不同域名下的单点登录
+- 本质其实就是一台认证中心，多台服务器应用之间的认证问题。
+## 本质
+<img src="./pic/单点登录.awebp">
+参考：
+- [图文并茂，为你揭开“单点登录“的神秘面纱](https://juejin.cn/post/6844904038555729927?searchId=2024081418330347EE1327F33C359262DC)
+- [单点登录（SSO）的设计与实现](https://juejin.cn/post/7179594368121045051?searchId=2024081418330347EE1327F33C359262DC#heading-4)
+
+# 
