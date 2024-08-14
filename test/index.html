@@ -1,52 +1,44 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Element Visibility Check</title>
-    <style>
-        .target {
-            height: 200px;
-            background-color: lightcoral;
-            margin: 110vh 0; /* Ensure the element is out of view initially */
-        }
-    </style>
-</head>
-<body>
 
-<div class="target" id="target"></div>
-<a href="/index.md">1111/a>
-<a href="/index2.md">2222</a>
-<script>
-    function isElementInViewport(el) {
-    debugger    // viewPortHeight 兼容所有浏览器写法
-    const viewPortHeight = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight 
-    const offsetTop = el.offsetTop
-    const scrollTop = document.documentElement.scrollTop
-    const top = offsetTop - scrollTop
-    return top <= viewPortHeight&&top>=0
+    <div class="transform_container">
+        <div class="container">
+            <div class="one">一一一一</div>
+            <div class="two">二二二二</div>
+            <div class="three">三三三三三</div>
+        </div>
+    </div>
 
-
-
+<style >
+.transform_container {
+    perspective: 1px;
+    transform-style: preserve-3d;
+    height: 100%;
+    overflow-y: scroll;
+    overflow-x: hidden;
+}
+.container {
+    transform-style: preserve-3d;
+    height: 150%;
+    .one {
+        font-weight: 600;
+        transform: translateZ(-1px);
+        position: absolute;
+        top: 20%;
+        left: 20%;
     }
-
-    const target = document.getElementById('target');
-
-    window.addEventListener('scroll', () => {
-        if (isElementInViewport(target)) {
-            console.log('Element is in view!');
-        } else {
-            console.log('Element is out of view!');
-        }
-    });
-
-    // Initial check
-    if (isElementInViewport(target)) {
-        console.log('Element is initially in view!');
-    } else {
-        console.log('Element is initially out of view!');
+    .two {
+        font-weight: 600;
+        transform: translateZ(-2px);
+        position: absolute;
+        top: 20%;
+        left: 35%;
     }
-</script>
+    .three {
+        font-weight: 600;
+        transform: translateZ(-3px);
+        position: absolute;
+        top: 20%;
+        left: 50%;
+    }
+}
+</style>
 
-</body>
-</html>

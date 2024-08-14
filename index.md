@@ -5878,3 +5878,123 @@ $attrs 现在包含 class 和 style attribute
 - $destroy 实例方法。用户不应该再手动管理单个 Vue 组件的生命周期。
 - 全局函数 set 和 delete 以及实例方法 $set 和 $delete。基于代理的变化检测已经不再需要它们了。
 
+# 视觉差动
+- 视差滚动效果是指在页面滚动时，不同的元素以不同的速度滚动，形成视差效果。视差滚动效果可以让页面更加生动，增加用户体验。方式有很多，这里介绍纯css方案
+## 实现方式
+- 通过background-attachment: fixed;实现
+
+```html
+
+<style>
+section {
+    height: 100vh;
+}
+
+.g-img {
+    background-image: url(../pic/DH算法分类.png);
+    background-attachment: fixed;
+    background-size: cover;
+    background-position: center center;
+}
+
+
+div {
+            height: 100vh;
+            background: rgba(0, 0, 0, .7);
+            color: #fff;
+            line-height: 100vh;
+            text-align: center;
+            font-size: 20vh;
+        }
+
+        .a-img1 {
+            background-image: url(https://images.pexels.com/photos/1097491/pexels-photo-1097491.jpeg);
+            background-attachment: fixed;
+            background-size: cover;
+            background-position: center center;
+        }
+
+        .a-img2 {
+            background-image: url(https://images.pexels.com/photos/2437299/pexels-photo-2437299.jpeg);
+            background-attachment: fixed;
+            background-size: cover;
+            background-position: center center;
+        }
+
+        .a-img3 {
+            background-image: url(https://images.pexels.com/photos/1005417/pexels-photo-1005417.jpeg);
+            background-attachment: fixed;
+            background-size: cover;
+            background-position: center center;
+        }
+</style>
+<body>
+     <div class="a-text">1</div>
+    <div class="a-img1">2</div>
+    <div class="a-text">3</div>
+    <div class="a-img2">4</div>
+    <div class="a-text">5</div>
+    <div class="a-img3">6</div>
+    <div class="a-text">7</div>   
+</body>
+
+
+
+
+```
+- 通过transform:translate3D
+```html
+
+    <div class="transform_container">
+        <div class="container">
+            <div class="one">一一一一</div>
+            <div class="two">二二二二</div>
+            <div class="three">三三三三三</div>
+        </div>
+    </div>
+
+<style >
+.transform_container {
+    perspective: 1px;
+    transform-style: preserve-3d;
+    height: 100%;
+    overflow-y: scroll;
+    overflow-x: hidden;
+}
+.container {
+    transform-style: preserve-3d;
+    height: 150%;
+    .one {
+        font-weight: 600;
+        transform: translateZ(-1px);
+        position: absolute;
+        top: 20%;
+        left: 20%;
+    }
+    .two {
+        font-weight: 600;
+        transform: translateZ(-2px);
+        position: absolute;
+        top: 20%;
+        left: 35%;
+    }
+    .three {
+        font-weight: 600;
+        transform: translateZ(-3px);
+        position: absolute;
+        top: 20%;
+        left: 50%;
+    }
+}
+</style>
+
+
+```
+原理：缩小比例=滚动速度比=P/(P-D)
+其中把scale设为S，pespcetive->P,translateZ->D ,具体的可以看第一篇参考文章，说得很详细，我也不好意思全部抄过来
+
+参考：
+- [基于CSS3-perspective的视差滚动](https://juejin.cn/post/6947634489740754981?from=search-suggest)
+- [面试官问我视差滚动怎么实现？我懵了](https://juejin.cn/post/7248242792283422776?from=search-suggest)
+
+# 单点登录（TODO）
