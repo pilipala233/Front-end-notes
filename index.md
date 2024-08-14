@@ -5803,3 +5803,78 @@ Object.prototype.toString.call(new Class2()); // "[object Class2]"
 - [vue-router3.x](https://v3.router.vuejs.org/zh/api/#aria-current-value)
 - [vue3](https://cn.vuejs.org/guide/built-ins/suspense.html)
 - [vue2](https://v2.cn.vuejs.org/v2/api/#keep-alive)
+
+# vue2与vue3的区别（todo）
+打上``` ```标签块的代表还没吃透
+## 新增
+- 组合式 API*
+- 单文件组件中的组合式 API 语法糖 (\<script setup>\)*
+- Teleport 组件
+- Fragments 片段
+- Emits 组件选项**
+- 来自 @vue/runtime-core 的 createRenderer API 用来创建自定义渲染函数
+- 单文件组件中的状态驱动的 CSS 变量 (\<style\> 中的 v-bind)*
+- SFC \<style scoped\> 新增全局规则和针对插槽内容的规则(::v-global: 允许在 scoped 样式中定义全局规则。
+::v-slotted: 允许在 scoped 样式中控制插槽内容的样式。)
+- Suspense 实验性
+
+>\* 现在也支持在 Vue 2.7 中使用\
+>** Vue 2.7 中支持，但仅用于类型推断
+## 非兼容
+### 全局API
+- ```全局 Vue API 更改为使用应用程序实例```
+- 全局的API如果没有使用到，那么可以进行摇树
+### 模版指令
+- v-model支持多个同时使用
+- v-for 时key的处理
+- v-if和v-for优先级变化
+- v-bind="object" 现在是顺序敏感的，遇到冲突时后者会覆盖前者，常见于 class 和 style 绑定
+- v-on 的 .native 修饰符已被移除，vue3里你只要是没有emit的事件，比如click，就会自动绑定到根元素上,你只要在根元素上监听@click就行了
+
+### 组件
+- 函数式组件写法不一致
+- defineAsyncComponent 方法进行创建
+- 事件抛出的方式变化
+
+### 渲染函数
+- 渲染函数API更改,现在h函数是全局导入的，写法也有点不一样
+- $scopedSlots property 已移除，所有插槽都通过 $slots 作为函数暴露，这个api主要给h函数用的
+- $listeners 被移除或整合到 $attrs
+$attrs 现在包含 class 和 style attribute
+
+
+### 自定义元素
+- is 属性只能在<component>中使用
+- 自定义属性检测现在在模版编译时执行（配置的地方不一样了）
+
+### 其他小改变
+
+- 声明周期名字变化
+- props default 工厂函数不再能访问this
+- 自定义指令的API和组件的生命周期一直了
+- data选项只能是一个函数了，不像vue2可以是一个对象也可以是一个函数
+- mixin 的data选型合并策略变化
+- ```attribute 强制行为```
+- Transition 的一些 class 被重命名
+- <TransitionGroup> 不再默认渲染包裹元素
+- 当侦听一个数组时，只有当数组被替换时，回调才会触发，如果需要在变更时触发，则必须指定 deep 选项
+- 没有特殊指令的标记 (v-if/else-if/else、v-for 或 v-slot) 的 ```<template>``` 现在被视为普通元素，并将渲染为原生的 ```<template>``` 元素，而不是渲染其内部内容。
+
+- 在 Vue 2.x 中，当挂载一个具有 template 的应用时，被渲染的内容会替换我们要挂载的目标元素。在 Vue 3.x 中，被渲染的应用会作为子元素插入，从而替换目标元素的 innerHTML。
+
+- ```生命周期的 hook: 事件前缀改为 vue:```
+
+
+### 被移除
+
+- 不再支持使用数字 (即键码) 作为 v-on 修饰符
+
+- $on、$off 和 $once 实例方法，event bus没了
+
+- 过滤器 (filter)
+- ```内联模板 attribute(的大多数用例都假设是在没有构建工具的环境中)```
+- $children
+- propsData 选项(配合Vue.extend使用)
+- $destroy 实例方法。用户不应该再手动管理单个 Vue 组件的生命周期。
+- 全局函数 set 和 delete 以及实例方法 $set 和 $delete。基于代理的变化检测已经不再需要它们了。
+
