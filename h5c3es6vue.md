@@ -4816,7 +4816,7 @@ loadImage('path/to/image.jpg')
 - 通过XMLHttpRequest发送post请求(常见)
 - 通过fetch发送post请求
 - 通过WebSocket发送post请求
-## 针对压缩后的代码的错误上报（toco）
+## 针对压缩后的代码的错误上报（todo）
 - 通过sourceMap解析
 
 
@@ -4831,8 +4831,29 @@ loadImage('path/to/image.jpg')
 
 # 跨域问题的处理(todo)
 
+# 跨域携带cookies
+
+有一个前提，那就是sameSite属性必须为None,将Cookie的SameSite值设为None，Secure值改为true，并且升级为https，我们就可以跨域使用Cookie(然后进行下面的操作,谷歌浏览器新版本Chrome 80将Cookie的SameSite属性默认值由None变为Lax)：
+1. 服务器端设置Access-Control-Allow-Credentials: true
+1. 客户端设置withCredentials: true
+1. 不能设置Access-Control-Allow-Origin: *，必须指定域名
+
+- 参考：
+- [【跨域】一篇文章彻底解决跨域设置cookie问题！](https://juejin.cn/post/7186303154349637690?searchId=20240816122027D351EFA8C6E513656BDA)
+- [跨域请求并且携带cookie的实践](https://juejin.cn/post/7086302846697603080?searchId=20240816122027D351EFA8C6E513656BDA)
+- [面试题 -- 跨域请求如何携带cookie?](https://juejin.cn/post/7066420545327218725?searchId=20240816122027D351EFA8C6E513656BDA)
 
 
+# SameSite 和跨站
+- 同站（Same-Site）：是指两个URL具有相同的注册域（registrable domain），即在去掉子域名后，它们共享相同的域名部分，并且不包含公共后缀（github.io、co.uk、com.cn）。对于浏览器来说，这两个URL属于同一个站点。其他视为跨站。跨站一定是跨域，但跨域不一定是跨站。
+- Secure：值为true时，只能通过https来传输Cookie。
+- SameSite：
+
+  - 值为Strict，完全禁止第三方Cookie，跨站时无法使用Cookie。
+  - 值为Lax，仅允许a标签在跨站时使用Get请求携带Cookie，其他的都不行，比如图片和img等
+  - 值为None，允许跨站跨域使用Cookie，前提是将Secure属性设置为true。
+参考：
+- [MDN](https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Headers/Set-Cookie#samesitesamesite-value)
 
 # 类数组转数组
 类数组对象是指那些具有 `length` 属性，并且可以通过索引访问其元素的对象

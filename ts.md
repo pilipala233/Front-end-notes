@@ -453,3 +453,30 @@ class Person{
 }
 
 # 泛型
+- 一般用法
+```ts
+function createArray<T>(length:number,value:T):T[]{
+    let result:T[]=[]
+    for(let i=0;i<length;i++){
+        result[i]=value
+    }
+    return result
+}
+let arr=createArray<string>(3,'x')
+//类型推断
+let arr=createArray(3,'x')
+
+```
+
+- 泛型默认值
+
+```ts
+function createArray<T=string>(length:number,value:T):T[]{
+    let result:T[]=[]
+    for(let i=0;i<length;i++){
+        result[i]=value
+    }
+    return result
+}
+let arr=createArray(3,'x')
+```
