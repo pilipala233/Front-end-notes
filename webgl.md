@@ -1,0 +1,6 @@
+- webgl只能绘制点、线、三角形，不能绘制其他图形
+- 着色器分为顶点着色器和片元着色器
+- 着色器变量分为三部分：存储限定符、变量类型、变量名
+- 存储限定符包括：uniforms、attributes、varyings以及texture
+- 变量类型：矢量（也就是向量）、矩阵、基础数据类型等
+- 在 WebGL 的着色器中，gl_Position 在顶点着色器中是必须赋值的。如果渲染点图元，还需要为 gl_PointSize 赋值。在 WebGL 1.0 的片段着色器中，gl_FragColor 是必须赋值的，而在 WebGL 2.0 中则需要使用 out 变量代替 gl_FragColor 来进行颜色输出。

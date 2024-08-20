@@ -451,9 +451,10 @@ class Person{
         this._name=name
     }
 }
+```
 
 # 泛型
-- 一般用法
+- 函数用法（可类型推断进行简写）
 ```ts
 function createArray<T>(length:number,value:T):T[]{
     let result:T[]=[]
@@ -480,3 +481,32 @@ function createArray<T=string>(length:number,value:T):T[]{
 }
 let arr=createArray(3,'x')
 ```
+- 类型别名中的使用
+```ts
+type Callback<T>=(data:T)=>void
+let fn:Callback<number>=(data:number)=>{}
+``` 
+- 接口中的使用
+```ts
+interface Callback<T>{
+    (data:T):void
+}
+let fn:Callback<number>=(data:number)=>{}
+```
+- 类中的使用（可类型推断简写）
+
+```ts
+class Person<T>{
+    private _name:T
+    constructor(name:T){
+        this._name=name
+    }
+}
+let p=new Person<string>('zf')
+//类型推断
+let p=new Person('zf')
+
+```
+# 泛型约束
+
+
