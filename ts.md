@@ -508,5 +508,24 @@ let p=new Person('zf')
 
 ```
 # 泛型约束
+- 常常使用extend 关键字
+```ts
+interface LengthWise{
+    length:number
+}
+function logger<T extends LengthWise>(val:T){
+    console.log(val.length)
+}
+logger('zf')
+```
+- 多个泛型约束
+```ts
+function mixinArray<T,U>(arr1:T[],arr2:U[]):(T|U)[]{
+    return [...arr1,...arr2]
+}
+let arr=mixinArray([1,2,3],['a','b','c'])
+```
+
+
 
 
