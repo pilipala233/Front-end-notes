@@ -526,6 +526,61 @@ function mixinArray<T,U>(arr1:T[],arr2:U[]):(T|U)[]{
 let arr=mixinArray([1,2,3],['a','b','c'])
 ```
 
+- 类的继承
+    - 子类的属性或者方法重写父类时，子类的属性或者方法必须是父类的属性的子类型（父类的方法参数应该比子类多）（有点逆变的感觉）
 
+    - 重写属性时编译结果是子类调用父类的super方法，传参是...arguements，这样相当于拥有了父类的属性
+
+    - 父类可以代替子类（逆变）准确来说应该是里氏替换原则
+    ```ts
+    class Animal{
+        name:string
+        constructor(name:string){
+            this.name=name
+        }
+        run(){
+            console.log('run')
+        }
+    }
+    class Dog extends
+    Animal{
+        bark(){
+            console.log('bark')
+        }
+    }
+    let a:Animal=new Dog('dog')
+    ```
+    - 当发生逆变时，如果想要访问子类的属性，可以用类型保护，或者类型断言
+    ```ts
+
+    class Animal{
+        name:string
+        constructor(name:string){
+            this.name=name
+        }
+        run(){
+            console.log('run')
+        }
+    }
+    class Dog extends
+    Animal{
+        bark(){
+            console.log('bark')
+        }
+    }
+    function show(a:Animal){
+        if(a instanceof Dog){
+            a.bark()
+        }
+    }
+    //类型断言
+    function show(a:Animal){
+        (a as Dog).bark()
+    }
+
+    ```
+
+
+ 
 
 
