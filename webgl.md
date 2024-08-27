@@ -6,4 +6,4 @@
 - 在 WebGL 的着色器中，gl_Position 在顶点着色器中是必须赋值的。如果渲染点图元，还需要为 gl_PointSize 赋值。在 WebGL 1.0 的片段着色器中，gl_FragColor 是必须赋值的，而在 WebGL 2.0 中则需要使用 out 变量代替 gl_FragColor 来进行颜色输出。
 - 在片段着色器（Fragment Shader）中，必须为浮点数指定默认精度。如果没有指定默认精度，GLSL 编译器会报错。通常，mediump 是浮点数的默认精度：
 - 顶点着色器和片元着色器之间的数据传递通过varying变量实现
-
+- 缓冲区对象可以一次性地向顶点着色器传递多个顶点的数据，不需要一个一个的传递
